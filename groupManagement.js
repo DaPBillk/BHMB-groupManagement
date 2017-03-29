@@ -33,7 +33,7 @@ var DaPgroupManagement = MessageBotExtension("DaPgroupManagement");
         "CLEAR-ADMINLIST": "CLEARADMIN",
         "SET-PASSWORD": "SETPASSWORD",
         "REMOVE-PASSWORD": "REMOVEPASSWORD",
-        "SET-PRIVACY": "SETPRIVACY",
+        "SET-PRIVACY": "SETPRIVACY", //This was SETPRVIACY
         "ADD-GROUP": "GROUPADD",
         "REMOVE-GROUP": "GROUPDELETE"
     };
