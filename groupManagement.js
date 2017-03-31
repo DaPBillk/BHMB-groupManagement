@@ -1,6 +1,8 @@
 var DaPgroupManagement = MessageBotExtension("DaPgroupManagement");
 (function (ex) {
 
+
+   //HEY. DAP. YOU UH. YOU KNOW THE HTML CODE THING? YOU SHOULD FIX IT. OH AND ADD A DEV GUIDE IN THE SOURCE CODE OR ON THE GITHUB REPOSITORY. IDK. BUT LIKE. CAPS LOCK. IT'S AMAZING.
     ex.setAutoLaunch(true);
     ex.groupPermissionDict = ["KICK", "UNBAN", "BAN", "BAN-NO-DEVICE", "BANKICKADMINS", "BANKICKMODS", "MOD", "UNMOD", "ADMIN", "UNADMIN", "STOP", "HELP", "WHITELIST", "UNWHITELIST", "LISTMOD", "LISTBAN", "LISTADMIN", "LISTWHITELIST", "PVPON", "PVPOFF", "LOADLIST", "SETPASSWORD", "REMOVEPASSWORD", "SETPRIVACY", "CLEARMOD", "CLEARADMIN", "CLEARBAN", "CLEARWHITELIST", "GROUPADD", "GROUPDELETE"];
     ex.groupPermissionDisplay = ["Kick", "Unban", "Ban", "Ban-no-device", "Ability to ban/kick Administrators", "Ability to ban/kick Moderators", "Mod", "Unmod", "Admin", "Unadmin", "Stop", "Help", "Whitelist", "Unwhitelist", "List Moderators *", "List Banned Users *", "List Administrators *", "List Whitelist *", "PVP-ON", "PVP-OFF", "LOAD-LIST", "SET-PASSWORD", "REMOVE-PASSWORD", "Set Privacy", "Clear Moderator List", "Clear Admin List", "Clear Ban List", "Clear Whitelist","Add-Group", "Remove-Group"];
@@ -33,9 +35,15 @@ var DaPgroupManagement = MessageBotExtension("DaPgroupManagement");
         "CLEAR-ADMINLIST": "CLEARADMIN",
         "SET-PASSWORD": "SETPASSWORD",
         "REMOVE-PASSWORD": "REMOVEPASSWORD",
-        "SET-PRIVACY": "SETPRIVACY", //This was SETPRVIACY
+        "SET-PRIVACY": "SETPRIVACY",
         "ADD-GROUP": "GROUPADD",
         "REMOVE-GROUP": "GROUPDELETE"
+    };
+
+    ex.extensionCmdAlias = [];
+
+    ex.uninstall = function() {
+      ex.storage.clearNamespace(ex.id);
     };
 
 
@@ -117,10 +125,14 @@ var DaPgroupManagement = MessageBotExtension("DaPgroupManagement");
     };
 
     ex.canUserUse = function (username, command) {
-      console.log("Alias: "+ex.commandAlias[command]);
-      console.log("Permission: "+ex.userHasPermission(username.toLowerCase(), ex.commandAlias[command]));
         if (ex.commandAlias[command]) {
             return ex.userHasPermission(username.toLowerCase(), ex.commandAlias[command]);
+        }
+
+        for (var x of ex.extensionCmdAlias) { //Mutiple extensions may have the same cmd. Ugh. However if this comment still exists then I had no problem with this.
+          if (x.cmd === command) {
+            return ex.userHasPermission(username.toLowerCase(), x.permName);
+          }
         }
     };
 
@@ -183,7 +195,6 @@ var DaPgroupManagement = MessageBotExtension("DaPgroupManagement");
     function sendMsg(msg, sender) {
 
         if (sender.toUpperCase() === "SERVER") {
-
             ex.console.write(msg);
         } else {
             ex.bot.send(msg);
@@ -203,8 +214,27 @@ var DaPgroupManagement = MessageBotExtension("DaPgroupManagement");
                 return;
             }
 
+            var name;
+            for (var x in ex.bot.world.players) {
+              if (x.toLowerCase() === username.toLowerCase()) {
+                name = x;
+                break;
+              }
+            }
+            if (!name) {
+              sendMsg(`${username} doesn't exist.`,sender);
+              return;
+            }
 
-            if (ex.userAddGroup(groupName, username)) {
+            if (!ex.groups[groupName.toLowerCase()]) {
+              sendMsg(`${groupName} doesn't exist.`,sender);
+              return;
+            }
+
+
+
+
+            if (ex.userAddGroup(groupName, username.toLowerCase())) {
 
                 sendMsg(`Successfully added ${username} to ${groupName}.`, sender);
             } else {
@@ -226,7 +256,25 @@ var DaPgroupManagement = MessageBotExtension("DaPgroupManagement");
                 sendMsg(`${groupName} is a reserved group! Failed to remove group from user.`, sender); //can't remove a user to the admin group, mod group, or any group.
                 return;
             }
-            if (ex.userRemoveGroup(groupName, username)) {
+
+            var name;
+            for (var x in ex.bot.world.players) {
+              if (x.toLowerCase() === username.toLowerCase()) {
+                name = x;
+                break;
+              }
+            }
+            if (!name) {
+              sendMsg(`${username} doesn't exist.`,sender);
+              return;
+            }
+
+            if (!ex.groups[groupName.toLowerCase()]) {
+              sendMsg(`${groupName} doesn't exist.`,sender);
+              return;
+            }
+
+            if (ex.userRemoveGroup(groupName, username.toLowerCase())) {
                 sendMsg(`Successfully removed ${username} from ${groupName}.`, sender);
             } else {
                 sendMsg(`${username} is not in the group ${groupName}`, sender);
@@ -242,6 +290,7 @@ var DaPgroupManagement = MessageBotExtension("DaPgroupManagement");
         if (htmlElm.tagName === "INPUT" && htmlElm.getAttribute("type") === "checkbox") {
             var groupName = htmlElm.getAttribute("data-groupName");
             var permissionName = htmlElm.getAttribute("name").substring(ex.id.length + 1);
+
             if (ex.groups[groupName].indexOf(permissionName) === -1) {
                 ex.groups[groupName].push(permissionName);
             } else {
@@ -313,6 +362,7 @@ var DaPgroupManagement = MessageBotExtension("DaPgroupManagement");
                     e.target.parentNode.remove();
 
                     delete ex.groups[tabName];
+                    delete ex.groupDisplayNames[tabName];
 
                     ex.save();
                 }
@@ -323,7 +373,13 @@ var DaPgroupManagement = MessageBotExtension("DaPgroupManagement");
     };
 
     ex.addGroup = function () {
-
+        if (Object.keys(ex.groups).length > 7) {
+          ex.ui.alert("You can't have more then 5 custom groups! This might be raised later on. Sorry. >_<",
+        [
+          {text:"Ok"}
+        ]);
+          return;
+        }
         ex.ui.alert(`What would you like this group to be called?<br /><input onchange="${ex.id}.alertValue = this.value;"></input>`, [
             {
                 text: "Add Group", action: function () {
@@ -331,6 +387,10 @@ var DaPgroupManagement = MessageBotExtension("DaPgroupManagement");
                         if (ex.alertValue.indexOf(" ") !== -1) {
                             ex.ui.notify("Spaces cannot be used in UserGroup names.");
                             return;
+                        }
+                        if (ex.alertValue.indexOf("<") !== -1 || ex.alertValue.indexOf(">") !== -1) {
+                          ex.ui.notify("< and > cannot be used in UserGroup names. This will be changed soon!");
+                          return;
                         }
                         ex.groups[ex.alertValue.toLowerCase()] = [];
                         ex.groupDisplayNames[ex.alertValue.toLowerCase()] = ex.alertValue;
@@ -350,6 +410,9 @@ var DaPgroupManagement = MessageBotExtension("DaPgroupManagement");
                             <a href="#">Delete UserGroup</a>
                         `;
                         divBox.querySelector("a").addEventListener("click", ex.deleteUserGroup);
+                        for (var x of ex.extensionCmdAlias) {
+                          ex.addNewGroupPermissionUI(divBox.querySelector("ul"),ex.id+"_"+x.permName,x.displayName);
+                        }
                         document.getElementById(ex.id + "_tab").appendChild(divBox);
 
 
@@ -358,6 +421,7 @@ var DaPgroupManagement = MessageBotExtension("DaPgroupManagement");
                         ex.tab.permissions.getElementsByTagName("nav")[0].setAttribute("data-selectedTab", ex.alertValue.toLowerCase());
                         ex.tab.permissions.querySelector("span[selected=true]").setAttribute("selected", "false");
                         ex.tab.permissions.querySelector(`span[data-tabname="${ex.alertValue.toLowerCase()}"]`).setAttribute("selected", "true");
+
 
                         ex.save();
                     } else {
@@ -455,8 +519,14 @@ var DaPgroupManagement = MessageBotExtension("DaPgroupManagement");
         ex.tab.users.querySelector(`div[data-${ex.id}_usertab=users] > span`).setAttribute("class","");
         ex.tab.users.querySelector(`div[data-${ex.id}_usertab=users] > span > h4`).textContent = name;
         var groupList = ex.tab.users.querySelector(`div[data-${ex.id}_usertab=users] > span > ul`);
+        groupList.innerHTML = "";
         if (!ex.users[name]) {
-
+          ex.fixGroups(name.toLowerCase());
+        }
+        for (var x of ex.users[name.toLowerCase()]) {
+          var li = document.createElement("li");
+          li.textContent = ex.getDisplayName(x);
+          groupList.appendChild(li);
         }
       }
     };
@@ -563,6 +633,7 @@ var DaPgroupManagement = MessageBotExtension("DaPgroupManagement");
         ex.tab.permissions.addEventListener("click", ex.modifiedPermission);
 
         ex.tab.permissions.getElementsByTagName("nav")[0].addEventListener("click", function (e) {
+
             var targ = e.target || e.srcElement || e.toElement;
             var newTabSelected = targ.getAttribute("data-tabname");
             if (newTabSelected != null) {
@@ -612,7 +683,7 @@ var DaPgroupManagement = MessageBotExtension("DaPgroupManagement");
               #${ex.id}_userTab nav span[selected=true] {
                 background: #E7E7E7;
                 color: #000;
-                <!--From Bib's Server Currency Extension. https://github.com/Bibliofile/BHMB-Server-Currency/blob/master/tab.html#L39-L40 -->
+                /*From Bib's Server Currency Extension. https://github.com/Bibliofile/BHMB-Server-Currency/blob/master/tab.html#L39-L40 */
               }
 
               #${ex.id}_userTab input {
@@ -623,6 +694,14 @@ var DaPgroupManagement = MessageBotExtension("DaPgroupManagement");
               #${ex.id}_userTab .h {
         				display:none;
         			}
+
+              #${ex.id}_userTab p {
+                margin-left:10px;
+              }
+
+              #${ex.id}_userTab li {
+                margin-left:15px;
+              }
 
             </style>
 
@@ -665,223 +744,374 @@ var DaPgroupManagement = MessageBotExtension("DaPgroupManagement");
 
 
         ex.commandHandler = function (name, command, args) {
-        ex.fixGroups(name.toLowerCase());
-        var cmd = command.toUpperCase();
-        if (name === "SERVER") {
-            switch (cmd) {
-                case "ADD-GROUP":
-                    cmdAddGroup(args, name);
-                    break;
-                case "REMOVE-GROUP":
-                    cmdRemoveGroup(args, name);
-                    break;
-            }
-            return;
-        }
-        console.log(ex.canUserUse(name, cmd));
-        if (ex.canUserUse(name, cmd) || ex.bot.world.isOwner(name)) {
-            //for now we hardcode in the commands. Fix soon.
+          ex.fixGroups(name.toLowerCase());
+          var cmd = command.toUpperCase();
 
-            switch (cmd) {
-                case "ADD-GROUP":
-                    cmdAddGroup(args, name);
-                    break;
-                case "REMOVE-GROUP":
-                    cmdRemoveGroup(args, name);
-                    break;
+          if (name === "SERVER") {
+              switch (cmd) {
+                  case "ADD-GROUP":
+                      cmdAddGroup(args, name);
+                      break;
+                  case "REMOVE-GROUP":
+                      cmdRemoveGroup(args, name);
+                      break;
+              }
+              return;
+          }
+          if (ex.canUserUse(name, cmd) || ex.bot.world.isOwner(name)) {
+              //for now we hardcode in the commands. Fix soon.
+              console.log("CAN USE");
+              switch (cmd) {
+                  case "ADD-GROUP":
+                      cmdAddGroup(args, name);
+                      break;
+                  case "REMOVE-GROUP":
+                      cmdRemoveGroup(args, name);
+                      break;
 
-                case "BAN":
-                case "KICK":
-                case "BAN-NO-DEVICE":
+                  case "BAN":
+                  case "KICK":
+                  case "BAN-NO-DEVICE":
 
-                    if (ex.bot.world.isOwner(args)) {
-                        sendMsg("Sorry, you do no have permission to issue that command.", name);
-                        return;
-                    }
-                    //NTS REFINE THIS SECTION
-                    if (!ex.bot.world.isAdmin(name)) {
-                        if (ex.bot.world.isMod(name)) {
-                            if (ex.bot.world.isStaff(args)) {
-                                //OH MY GOSH. IT'S A STAFF MEMBER. I'M YOUR BIGGEST FAN. @ _ @ No ban ples
-                                if (ex.bot.world.isAdmin(args)) {
-                                    if (ex.userHasPermission(name, "BANKICKADMIN")) {
-                                        sendMsg(`/${cmd} ${args}`, name);
-                                    } else {
-                                        sendMsg("Sorry, you do no have permission to issue that command.", name);
-                                    }
-                                } else {
-                                    if (ex.userHasPermission(name, "BANKICKMOD")) {
-                                        sendMsg(`/${cmd} ${args}`, name);
-                                    } else {
-                                        sendMsg("Sorry, you do no have permission to issue that command.", name);
-                                    }
-                                }
-                            }
-                            // no else. Do nothing. Cmd issued. Whatever. GG.
-                        } else {
-                            if (ex.bot.world.isStaff(args)) {
-                                //OH MY GOSH. IT'S A STAFF MEMBER. I'M YOUR BIGGEST FAN. @ _ @ No ban ples
-                                if (ex.bot.world.isAdmin(args)) {
-                                    if (ex.userHasPermission(name, "BANKICKADMIN")) {
-                                        sendMsg(`/${cmd} ${args}`, name);
-                                    } else {
-                                        sendMsg("Sorry, you do no have permission to issue that command.", name);
-                                    }
-                                } else {
-                                    if (ex.userHasPermission(name, "BANKICKMOD")) {
-                                        sendMsg(`/${cmd} ${args}`);
-                                    } else {
-                                        sendMsg("Sorry, you do no have permission to issue that command.", name);
-                                    }
-                                }
-                            } else {
-                                sendMsg(`/${cmd} ${args}`, name);
-                            }
+                      if (ex.bot.world.isOwner(args)) {
+                          sendMsg("Sorry, you do no have permission to issue that command.", name);
+                          return;
+                      }
+                      //NTS REFINE THIS SECTION
+                      if (!ex.bot.world.isAdmin(name)) {
+                          if (ex.bot.world.isMod(name)) {
+                              if (ex.bot.world.isStaff(args)) {
+                                  //OH MY GOSH. IT'S A STAFF MEMBER. I'M YOUR BIGGEST FAN. @ _ @ No ban ples
+                                  if (ex.bot.world.isAdmin(args)) {
+                                      if (ex.userHasPermission(name, "BANKICKADMIN")) {
+                                          sendMsg(`/${cmd} ${args}`, name);
+                                      } else {
+                                          sendMsg("Sorry, you do no have permission to issue that command.", name);
+                                      }
+                                  } else {
+                                      if (ex.userHasPermission(name, "BANKICKMOD")) {
+                                          sendMsg(`/${cmd} ${args}`, name);
+                                      } else {
+                                          sendMsg("Sorry, you do no have permission to issue that command.", name);
+                                      }
+                                  }
+                              }
+                              // no else. Do nothing. Cmd issued. Whatever. GG.
+                          } else {
+                              if (ex.bot.world.isStaff(args)) {
+                                  //OH MY GOSH. IT'S A STAFF MEMBER. I'M YOUR BIGGEST FAN. @ _ @ No ban ples
+                                  if (ex.bot.world.isAdmin(args)) {
+                                      if (ex.userHasPermission(name, "BANKICKADMIN")) {
+                                          sendMsg(`/${cmd} ${args}`, name);
+                                      } else {
+                                          sendMsg("Sorry, you do no have permission to issue that command.", name);
+                                      }
+                                  } else {
+                                      if (ex.userHasPermission(name, "BANKICKMOD")) {
+                                          sendMsg(`/${cmd} ${args}`);
+                                      } else {
+                                          sendMsg("Sorry, you do no have permission to issue that command.", name);
+                                      }
+                                  }
+                              } else {
+                                  sendMsg(`/${cmd} ${args}`, name);
+                              }
+                          }
+                      }
+
+                      break;
+                  case "MOD":
+                  case "UNMOD":
+                  case "ADMIN":
+                  case "UNADMIN":
+                  case "PVP-ON":
+                  case "PVP-OFF":
+                  case "LOAD-LISTS":
+
+                      if (!ex.bot.world.isAdmin(name)) {
+                          sendMsg(`/${cmd} ${args}`, name);
+                      }
+                      break;
+
+                  case "STOP":
+
+                      if (!ex.bot.world.isAdmin(name)) {
+                          sendMsg(`/stop`, name);
+                      }
+                      break;
+                  case "HELP":
+
+                      var helpStr = "\n";
+                      for (var x in help) {
+                          if (ex.canUserUse(name.toLowerCase(), x)) {
+                              helpStr += help[x] + "\n";
+                          }
+                      }
+                      sendMsg(helpStr, name);
+                      break;
+                  case "WHITELIST":
+                  case "UNWHITELIST":
+                  case "UNBAN":
+
+                      if (!ex.bot.world.isStaff(name)) {
+                          sendMsg(`/${cmd} ${args}`, name);
+                      }
+                      break;
+
+                  case "LIST-MODLIST":
+
+                      if (!ex.bot.world.isAdmin(name)) {
+                          var str = "Modlist:\n";
+                          for (var x of ex.bot.world.lists.mod) {
+                              str += x.toLowerCase() + ", ";
+                          }
+                          sendMsg(str, name);
+                      }
+                      break;
+                  case "LIST-ADMINLIST":
+
+                      if (!ex.bot.world.isAdmin(name)) {
+                          var str = "Adminlist:\n";
+                          for (var x of ex.bot.world.lists.admin) {
+                              str += x.toLowerCase() + ", ";
+                          }
+                          sendMsg(str, name);
+                      }
+                      break;
+                  case "LIST-BLACKLIST":
+
+                      if (!ex.bot.world.isStaff(name)) {
+                          var str = "Blacklist:\n";
+                          for (var x of ex.bot.world.lists.black) {
+                              str += x.toLowerCase() + ", ";
+                          }
+                          sendMsg(str, name);
+                      }
+                      break;
+                  case "LIST-WHITELIST":
+
+                      if (!ex.bot.world.isStaff(name)) {
+                          var str = "Whitelist:\n";
+                          for (var x of ex.bot.world.lists.white) {
+                              str += x.toLowerCase() + ", ";
+                          }
+                          sendMsg(str, name);
+                      }
+                      break;
+                  case "SET-PRIVACY":
+                      if (!ex.bot.world.isOwner(name)) {
+                          var privacySet = args.toUpperCase();
+                          switch (privacySet) {
+                              case "PUBLIC":
+                                  if (ex.bot.world.lists.white.length > 0) {
+                                      sendMsg("Error: This world is whitelisted, and whitelisted worlds can only be serachable or private. Privacy setting has been left unchanged.", name);
+                                  } else {
+                                      sendMsg("Privacy setting changed to public.", name);
+                                  }
+                                  break;
+                              case "PRIVATE":
+                                  sendMsg(`/SET-PRIVACY ${args}`, name);
+                                  sendMsg("Privacy setting changed to private.", name);
+                                  break;
+                              case "SEARCHABLE":
+                                  sendMsg(`/SET-PRIVACY ${args}`, name);
+                                  sendMsg("Privacy setting changed to searchable.", name);
+                                  break;
+                          }
+                      }
+                      break;
+                  case "SET-PASSWORD":
+
+                      if (!ex.bot.world.isOwner(name)) {
+                          sendMsg(`/SET-PASSWORD ${args}`, name);
+                          sendMsg("Password set.", name);
+                      }
+                      break;
+                  case "REMOVE-PASSWORD":
+
+                      if (!ex.bot.world.isOwner(name)) {
+                          ex.api.getHomepage(true).then((data) => {
+                              var passwordProtected = new DOMParser().parseFromString(data, "text/html").querySelectorAll("table > tbody > tr > td:not(.right):not(.left)")[8].textContent;
+                              if (passwordProtected === "No") {
+                                  sendMsg("There was already no password set.", name);
+                              } else {
+                                  sendMsg("Password removed.", name);
+                              }
+                          });
+                          sendMsg(`/REMOVE-PASSWORD`, name);
+
+                      } else {
+
+                      }
+                      break;
+                  case "PLAYERS":
+                      //For now this doesn't exist... EVER.
+                      break;
+
+                  default:
+                      //well I was given permissions to use the cmd.. So maybe.. Just maybe.. There's an extension that has a cmd handler thingy for me? :o - DaP 2k17 (Probably questioning his own sanity)
+                      //custom cmds.
+                      for (var x of ex.extensionCmdAlias) {
+                        if (x.cmd === cmd && ex.userHasPermission(name.toLowerCase(), x.permName)) {
+                          try {
+                            x.callback(name,command,args);
+                          } catch (e) {
+
+                          }
                         }
-                    }
-
-                    break;
-                case "MOD":
-                case "UNMOD":
-                case "ADMIN":
-                case "UNADMIN":
-                case "PVP-ON":
-                case "PVP-OFF":
-                case "LOAD-LISTS":
-
-                    if (!ex.bot.world.isAdmin(name)) {
-                        sendMsg(`/${cmd} ${args}`, name);
-                    }
-                    break;
-
-                case "STOP":
-
-                    if (!ex.bot.world.isAdmin(name)) {
-                        sendMsg(`/stop`, name);
-                    }
-                    break;
-                case "HELP":
-
-                    var helpStr = "\n";
-                    for (var x in help) {
-                        if (ex.canUserUse(name.toLowerCase(), x)) {
-                            helpStr += help[x] + "\n";
-                        }
-                    }
-                    sendMsg(helpStr, name);
-                    break;
-                case "WHITELIST":
-                case "UNWHITELIST":
-                case "UNBAN":
-
-                    if (!ex.bot.world.isStaff(name)) {
-                        sendMsg(`/${cmd} ${args}`, name);
-                    }
-                    break;
-
-                case "LIST-MODLIST":
-
-                    if (!ex.bot.world.isAdmin(name)) {
-                        var str = "Modlist:\n";
-                        for (var x of ex.bot.world.lists.mod) {
-                            str += x.toLowerCase() + ", ";
-                        }
-                        sendMsg(str, name);
-                    }
-                    break;
-                case "LIST-ADMINLIST":
-
-                    if (!ex.bot.world.isAdmin(name)) {
-                        var str = "Adminlist:\n";
-                        for (var x of ex.bot.world.lists.admin) {
-                            str += x.toLowerCase() + ", ";
-                        }
-                        sendMsg(str, name);
-                    }
-                    break;
-                case "LIST-BLACKLIST":
-
-                    if (!ex.bot.world.isStaff(name)) {
-                        var str = "Blacklist:\n";
-                        for (var x of ex.bot.world.lists.black) {
-                            str += x.toLowerCase() + ", ";
-                        }
-                        sendMsg(str, name);
-                    }
-                    break;
-                case "LIST-WHITELIST":
-
-                    if (!ex.bot.world.isStaff(name)) {
-                        var str = "Whitelist:\n";
-                        for (var x of ex.bot.world.lists.white) {
-                            str += x.toLowerCase() + ", ";
-                        }
-                        sendMsg(str, name);
-                    }
-                    break;
-                case "SETPRIVACY":
-                    if (!ex.bot.world.isOwner(name)) {
-                        var privacySet = args.toUpperCase();
-                        console.log(privacySet);
-                        switch (privacySet) {
-                            case "PUBLIC":
-                                if (ex.bot.world.lists.white.length > 0) {
-                                    sendMsg("Error: This world is whitelisted, and whitelisted worlds can only be serachable or private. Privacy setting has been left unchanged.", name);
-                                } else {
-                                    sendMsg("Privacy setting changed to public.", name);
-                                }
-                                break;
-                            case "PRIVATE":
-                                sendMsg(`/SET-PRIVACY ${args}`, name);
-                                sendMsg("Privacy setting changed to private.", name);
-                                break;
-                            case "SEARCHABLE":
-                                sendMsg(`/SET-PRIVACY ${args}`, name);
-                                sendMsg("Privacy setting changed to searchable.", name);
-                                break;
-                        }
-                    }
-                    break;
-                case "SET-PASSWORD":
-
-                    if (!ex.bot.world.isOwner(name)) {
-                        sendMsg(`/SET-PASSWORD ${args}`, name);
-                        sendMsg("Password set.", name);
-                    }
-                    break;
-                case "REMOVE-PASSWORD":
-
-                    if (!ex.bot.world.isOwner(name)) {
-                        ex.api.getHomepage(true).then((data) => {
-                            var passwordProtected = new DOMParser().parseFromString(data, "text/html").querySelectorAll("table > tbody > tr > td:not(.right):not(.left)")[8].textContent;
-                            if (passwordProtected === "No") {
-                                sendMsg("There was already no password set.", name);
-                            } else {
-                                sendMsg("Password removed.", name);
-                            }
-                        });
-                        sendMsg(`/REMOVE-PASSWORD`, name);
-
-                    } else {
-
-                    }
-                    break;
-                case "PLAYERS":
-                    //For now this doesn't exist... EVER.
-                    break;
-
-                default:
-
-                    //custom cmds.
-                    break;
-            }
-        }
+                      }
+                      break;
+              }
+          }
     };
+
+    ex.removeGroupPermissionUI = function(id) {
+      console.log(id);
+      var perms = ex.tab.permissions.querySelectorAll(`div[data-${ex.id}_tab] > ul > li > input`);
+      var list;
+      for (var x of perms) {
+
+
+        if (x.getAttribute("name") === ex.id+"_"+id) {
+
+          x.parentElement.remove();
+        }
+      }
+    };
+
+
+    ex.addGroupPermissionUI = function(id,displayName,ignoreAdmin = false,ignoreMod = false,ignoreAny = false) {
+      console.log(id);
+      var divs = ex.tab.permissions.querySelectorAll(`div[data-${ex.id}_tab]`);
+      var li;
+      var input;
+
+      for (var x of divs) {
+
+        li = document.createElement("li");
+        input = document.createElement("input");
+        input.setAttribute("type","checkbox");
+        var group = x.getAttribute(`data-${ex.id}_tab`).substring(4);
+
+        input.setAttribute("data-groupname",group);
+        input.setAttribute("name",id);
+        if (ignoreAdmin && group === "administrator" || ignoreMod && group === "moderator" || ignoreAny && group === "anyone") {
+          input.setAttribute("disabled","");
+          input.setAttribute("checked","");
+        }
+        if (ex.groups[group].indexOf(id.substring(ex.id.length+1)) != -1) {
+          input.setAttribute("checked","");
+        }
+        li.appendChild(input);
+        li.innerHTML += displayName;
+        x.querySelector("ul").appendChild(li);
+
+      }
+    };
+
+    ex.addNewGroupPermissionUI = function(list,id,displayName) {
+      li = document.createElement("li");
+      input = document.createElement("input");
+      input.setAttribute("type","checkbox");
+      var group = list.parentElement.getAttribute(`data-${ex.id}_tab`).substring(4);
+      input.setAttribute("data-groupname",group);
+      input.setAttribute("name",id);
+      if (ex.groups[group].indexOf(id.substring(ex.id.length+1)) != -1) {
+        input.setAttribute("checked","");
+      }
+      li.appendChild(input);
+      li.innerHTML += displayName;
+      list.appendChild(li);
+    };
+
+    ex.registerExtension = function(id) {
+      console.log("registering... "+id);
+      if (window[id]) {
+        var ext = window[id];
+        var config = ext.permissionConfig;
+        if (!config) {
+          return;
+        }
+        if (!config.id || !config.cmds) {
+          return;
+        }
+        if (!typeof config.id === "string" || !Array.isArray(config.cmds)) {
+          return;
+        }
+
+
+        for (var x of config.cmds) {
+          var cmd = x.cmd;
+          var disableMod = false;
+          var disableAdmin = false;
+          var disableAny = false;
+
+          if (x.cmd.startsWith("/")) {
+            cmd = x.cmd.substring(1);
+          }
+          var permName = `${config.id}_${cmd.toUpperCase()}`;
+          if (x.disableMod && typeof x.disableMod === "boolean") {
+            disableMod = x.disableMod;
+            if (ex.groups["moderator"].indexOf(permName) === -1) {
+              ex.groups["moderator"].push(permName);
+            }
+          }
+          if (x.disableAdmin && typeof x.disableAdmin === "boolean") {
+            disableAdmin = x.disableAdmin;
+            if (ex.groups["administrator"].indexOf(permName) === -1) {
+              ex.groups["administrator"].push(permName);
+            }
+          }
+          if (x.disableAny && typeof x.disableAny === "boolean") {
+            disableAny = x.disableAny;
+            if (ex.groups["anyone"].indexOf(permName) === -1) {
+              ex.groups["anyone"].push(permName);
+            }
+          }
+
+          ex.extensionCmdAlias.push({
+            ext: config.id || id,
+            cmd: cmd.toUpperCase(),
+            callback: x.callback,
+            disableAdmin: disableMod,
+            disableMod: disableAdmin,
+            displayName: x.displayName,
+            permName: permName
+          });
+          //console.log("Registering cmd... "+cmd.toUpperCase());
+          ex.addGroupPermissionUI(ex.id+"_"+permName,x.displayName,disableAdmin,disableMod,disableAny);
+        }
+        ex.save();
+
+      }
+
+    };
+
+    ex.unregisterExtension = function(id) {
+      for (var i = 0; i < ex.extensionCmdAlias.length; i++) {
+        if (ex.extensionCmdAlias[i].ext === id) {
+          ex.removeGroupPermissionUI(ex.extensionCmdAlias[i].permName);
+          ex.extensionCmdAlias.splice(i,1);
+
+        }
+      }
+      ex.save();
+    };
+
+    ex.registerLoadedExtensions = function() {
+      var extensions = JSON.parse(localStorage.getItem("mb_extensions"));
+      for (var x of extensions) {
+        if (x !== ex.id && window[x]) {
+          ex.registerExtension(x);
+        }
+      }
+    };
+
 
     function installAwesome() {
       var ready = [false,false];
       return new Promise(function(resolve){
-        if (document.querySelector("link[href='//cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.1/awesomplete.min.css']")) {
+        if (!document.querySelector("link[href='//cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.1/awesomplete.min.css']")) {
           var sty = document.createElement("link");
           sty.rel = "stylesheet";
           sty.href = "//cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.1/awesomplete.min.css";
@@ -895,7 +1125,7 @@ var DaPgroupManagement = MessageBotExtension("DaPgroupManagement");
         } else {
           ready[0] = true;
         }
-        if (document.querySelector("script[href='//cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.1/awesomplete.min.js']")) {
+        if (!document.querySelector("script[href='//cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.1/awesomplete.min.js']")) {
           var scr = document.createElement("script");
           scr.src = "//cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.1/awesomplete.min.js";
           document.head.appendChild(scr);
@@ -915,11 +1145,16 @@ var DaPgroupManagement = MessageBotExtension("DaPgroupManagement");
 
     };
 
+
     ex.loadStorage();
 
     installAwesome().then(function(){
       ex.createTab();
+      ex.hook.listen("extension.install",ex.registerExtension);
+      ex.hook.listen("extension.uninstall",ex.unregisterExtension);
+      ex.registerLoadedExtensions();
     });
     setTimeout(function () { ex.hook.listen("world.command", ex.commandHandler); }, 1000); //Do not run any old cmds.
+
 
 })(DaPgroupManagement);
