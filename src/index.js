@@ -25,7 +25,7 @@ const GMUI = require("./ui/GM.js");
 
       ex.uninstall = function() {
         ex.remove();
-        //TODO: REMOVE STORAGE.
+        ex.storage.clear("data");
       };
 
       ex.save = function() {

@@ -100,7 +100,7 @@ const GMUI = __webpack_require__(10);
 
       ex.uninstall = function() {
         ex.remove();
-        //TODO: REMOVE STORAGE.
+        ex.storage.clear("data");
       };
 
       ex.save = function() {
