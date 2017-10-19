@@ -1,4 +1,3 @@
-const MessageBot = require("MessageBot");
 const PermissionSystem = require("./permissions/System.js");
 const PermissionManagement = require("./permissions/Management.js");
 const BHPermissions = require("./extensions/BH.js");
