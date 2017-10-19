@@ -14,7 +14,7 @@ const GMUI = require("./ui/GM.js");
 
     MessageBot.registerExtension("DaPersonMGN/groupManagement", function(ex, world) {
       //Debugging purposes.
-      window.ex = ex;
+      //window.ex = ex;
 
       ex.remove = function() {
         world.onMessage.unsub(ex.Management.commandHandler);
@@ -24,7 +24,6 @@ const GMUI = require("./ui/GM.js");
 
       ex.uninstall = function() {
         ex.remove();
-        ex.storage.clear("data");
       };
 
       ex.save = function() {
@@ -32,7 +31,7 @@ const GMUI = require("./ui/GM.js");
           groups: ex.System.groups,
           playerPermissions: ex.System.playerPermissions
         };
-        ex.storage.set("data", JSON.stringify(saveData));
+        ex.storage.set("data", saveData);
       };
 
 
@@ -93,7 +92,7 @@ const GMUI = require("./ui/GM.js");
       ex.exports["System"] = ex.System;
       ex.exports["Management"] = ex.Management;
 
-      if (!ex.bot.getExports("ui") || ex.bot.isNode) { return } //Only UI stuff left.
+      if (!ex.bot.getExports("ui")) { return } //Only UI stuff left.
 
       ex.tab = new GMUI.createTab({
         System: ex.System,

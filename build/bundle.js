@@ -73,16 +73,15 @@ module.exports = "<p class=\"control\">\r\n  <label class=\"checkbox\">\r\n    <
 /* 1 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const MessageBot = __webpack_require__(2);
-const PermissionSystem = __webpack_require__(3);
-const PermissionManagement = __webpack_require__(4);
-const BHPermissions = __webpack_require__(6);
-const GMPermissions = __webpack_require__(8);
-const GMUI = __webpack_require__(10);
+const PermissionSystem = __webpack_require__(2);
+const PermissionManagement = __webpack_require__(3);
+const BHPermissions = __webpack_require__(5);
+const GMPermissions = __webpack_require__(7);
+const GMUI = __webpack_require__(9);
 
 
 (function (global, factory) {
-     true ? factory(__webpack_require__(13)) :
+     true ? factory(__webpack_require__(12)) :
     typeof define === 'function' && define.amd ? define(['@bhmb/bot'], factory) :
     (factory(global['@bhmb/bot']));
 }(this, (function (bot) { 'use strict';
@@ -90,7 +89,7 @@ const GMUI = __webpack_require__(10);
 
     MessageBot.registerExtension("DaPersonMGN/groupManagement", function(ex, world) {
       //Debugging purposes.
-      window.ex = ex;
+      //window.ex = ex;
 
       ex.remove = function() {
         world.onMessage.unsub(ex.Management.commandHandler);
@@ -100,7 +99,6 @@ const GMUI = __webpack_require__(10);
 
       ex.uninstall = function() {
         ex.remove();
-        ex.storage.clear("data");
       };
 
       ex.save = function() {
@@ -108,7 +106,7 @@ const GMUI = __webpack_require__(10);
           groups: ex.System.groups,
           playerPermissions: ex.System.playerPermissions
         };
-        ex.storage.set("data", JSON.stringify(saveData));
+        ex.storage.set("data", saveData);
       };
 
 
@@ -169,7 +167,7 @@ const GMUI = __webpack_require__(10);
       ex.exports["System"] = ex.System;
       ex.exports["Management"] = ex.Management;
 
-      if (!ex.bot.getExports("ui") || ex.bot.isNode) { return } //Only UI stuff left.
+      if (!ex.bot.getExports("ui")) { return } //Only UI stuff left.
 
       ex.tab = new GMUI.createTab({
         System: ex.System,
@@ -187,12 +185,6 @@ const GMUI = __webpack_require__(10);
 
 /***/ }),
 /* 2 */
-/***/ (function(module, exports) {
-
-module.exports = window['@bhmb/bot'].MessageBot;
-
-/***/ }),
-/* 3 */
 /***/ (function(module, exports) {
 
 var PermissionSystem = function(ex) {
@@ -264,10 +256,10 @@ module.exports = PermissionSystem;
 
 
 /***/ }),
-/* 4 */
+/* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var Group = __webpack_require__(5);
+var Group = __webpack_require__(4);
 
 var PermissionManagement = function(ex, PermissionSystem) {
   var _this = this;
@@ -356,7 +348,7 @@ module.exports = PermissionManagement;
 
 
 /***/ }),
-/* 5 */
+/* 4 */
 /***/ (function(module, exports) {
 
 var Group = function(ex, name, permissions, players, disabledPermissions ,unremoveable) {
@@ -419,10 +411,10 @@ module.exports = Group;
 
 
 /***/ }),
-/* 6 */
+/* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var permissionHandler = __webpack_require__(7)
+var permissionHandler = __webpack_require__(6)
 
 module.exports = [
   {
@@ -693,7 +685,7 @@ module.exports = [
 
 
 /***/ }),
-/* 7 */
+/* 6 */
 /***/ (function(module, exports) {
 
 module.exports = function(ex, namespace, player, args, raw) {
@@ -936,10 +928,10 @@ module.exports = function(ex, namespace, player, args, raw) {
 
 
 /***/ }),
-/* 8 */
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var permissionHandler = __webpack_require__(9);
+var permissionHandler = __webpack_require__(8);
 module.exports = [
   {
     namespace: "GM.HELP",
@@ -1022,7 +1014,7 @@ module.exports = [
 
 
 /***/ }),
-/* 9 */
+/* 8 */
 /***/ (function(module, exports) {
 
 module.exports = function(ex, namespace, player, args, raw) {
@@ -1276,7 +1268,7 @@ module.exports = function(ex, namespace, player, args, raw) {
 
 
 /***/ }),
-/* 10 */
+/* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var ui = {};
@@ -1329,7 +1321,7 @@ ui.createTab = function(GM) {
     }
     this.groupTabs[groupObj.id] = this.ui.addTab(groupObj.name, "groupManagementTab");
     var gTab = this.groupTabs[groupObj.id];
-    gTab.innerHTML = "<style>"+__webpack_require__(11)+"</style>" + __webpack_require__(12);
+    gTab.innerHTML = "<style>"+__webpack_require__(10)+"</style>" + __webpack_require__(11);
 
     gTab.querySelector(".title").textContent = groupObj.name;
     for (var categoryParent in this.Management.categories) {
@@ -1458,19 +1450,19 @@ module.exports = ui;
 
 
 /***/ }),
-/* 11 */
+/* 10 */
 /***/ (function(module, exports) {
 
 module.exports = ".groupManagementPermissions {\r\n  min-width:35%;\r\n  max-width:35%;\r\n  min-height:95%;\r\n  float: left;\r\n  margin-top:10px;\r\n}\r\n\r\n.groupManagementPermissionEditing {\r\n  min-width: 63%;\r\n  max-width: 63%;\r\n  min-height:95%;\r\n  float: right;\r\n  margin-top:10px;\r\n}\r\n\r\n.groupManagementPermissions .is-active {\r\n  background: #182b73;\r\n}\r\n\r\n.groupManagementPermissionEditing .control {\r\n  padding: 5%;\r\n}\r\n\r\n.groupManagementHidden {\r\n  display: none;\r\n}\r\n"
 
 /***/ }),
-/* 12 */
+/* 11 */
 /***/ (function(module, exports) {
 
 module.exports = "<div class=\"container\" style=\"height:100%;\">\r\n  <div class=\"box groupManagementPermissions\">\r\n    <aside class=\"menu\">\r\n    </aside>\r\n  </div>\r\n  <div class=\"box groupManagementPermissionEditing\">\r\n    <label><span class=\"title\"></span></label>\r\n\r\n    <label>\r\n      <span class=\"subtitle\" style=\"padding-left:5px;\">\r\n        <a href=\"#\" data-action=\"rename\">Rename</a>\r\n         -\r\n         <a href=\"#\" data-action=\"delete\">Delete</a>\r\n       </span>\r\n\r\n       <span class=\"subtitle is-pulled-right\">\r\n         <a href=\"#\" data-action=\"create\">\r\n           New Group\r\n         </a>\r\n       </span>\r\n     </label>\r\n\r\n    <hr />\r\n\r\n  </div>\r\n</div>\r\n"
 
 /***/ }),
-/* 13 */
+/* 12 */
 /***/ (function(module, exports) {
 
 module.exports = window['@bhmb/bot'];
