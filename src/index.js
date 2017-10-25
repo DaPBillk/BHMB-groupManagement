@@ -53,7 +53,6 @@ const GMUI = require("./ui/GM.js");
           ex.save();
           return;
         }
-        data = JSON.parse(data);
         for (var groupID in data.groups) {
           ex.Management.createGroup(data.groups[groupID].name, data.groups[groupID].permissions, data.groups[groupID].players, data.groups[groupID].disabledPermissions, data.groups[groupID].unremoveable);
         }
