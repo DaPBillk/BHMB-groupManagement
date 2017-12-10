@@ -14,11 +14,11 @@ const GMUI = require("./ui/GM.js");
 
     MessageBot.registerExtension("DaPersonMGN/groupManagement", function(ex, world) {
       //Debugging purposes.
-      //window.ex = ex;
+      window.ex = ex;
 
       ex.remove = function() {
         world.onMessage.unsub(ex.Management.commandHandler);
-        if (!ex.bot.getExports("ui") || ex.bot.isNode) {return} //Only UI stuff left to remove.
+        if (!ex.bot.getExports("ui")) {return} //Only UI stuff left to remove.
         ex.bot.getExports("ui").removeTabGroup("groupManagementTab");
       };
 

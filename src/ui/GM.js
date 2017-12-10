@@ -65,11 +65,11 @@ ui.createTab = function(GM) {
             colNum = 0;
           }
           gTab.querySelector("div[data-tab='"+subcategoryID+"']").querySelectorAll(".column")[colNum].innerHTML += require("./html/permission.html").replace("{PERMISSION}",permission.displayName).replace("{ID}",permission.namespace);
-          if (groupObj.permissions.indexOf(permission.namespace.toLowerCase()) > -1) {
+          if (groupObj.permissions.indexOf(permission.namespace.toUpperCase()) > -1) {
             gTab.querySelector("input[data-permission='"+permission.namespace+"']").setAttribute("checked","");
           }
 
-          if (groupObj.disabledPermissions.indexOf(permission.namespace.toLowerCase()) > -1) {
+          if (groupObj.disabledPermissions.indexOf(permission.namespace.toUpperCase()) > -1) {
             gTab.querySelector("input[data-permission='"+permission.namespace+"']").setAttribute("disabled","");
           }
           colNum++;
@@ -95,13 +95,8 @@ ui.createTab = function(GM) {
               return;
             }
             _this.ui.alert("Are you sure you want to delete this group?",[
-              {
-                text: "Delete",
-                style: "danger",
-              },
-              {
-                text: "Cancel"
-              }
+              "Delete",
+              "Cancel"
             ], function(action){
               if (action === "Cancel") {return}
               _this.Management.destroyGroup(groupObj.id);

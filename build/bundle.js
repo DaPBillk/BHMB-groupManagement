@@ -89,11 +89,11 @@ const GMUI = __webpack_require__(9);
 
     MessageBot.registerExtension("DaPersonMGN/groupManagement", function(ex, world) {
       //Debugging purposes.
-      //window.ex = ex;
+      window.ex = ex;
 
       ex.remove = function() {
         world.onMessage.unsub(ex.Management.commandHandler);
-        if (!ex.bot.getExports("ui") || ex.bot.isNode) {return} //Only UI stuff left to remove.
+        if (!ex.bot.getExports("ui")) {return} //Only UI stuff left to remove.
         ex.bot.getExports("ui").removeTabGroup("groupManagementTab");
       };
 
@@ -1337,11 +1337,11 @@ ui.createTab = function(GM) {
             colNum = 0;
           }
           gTab.querySelector("div[data-tab='"+subcategoryID+"']").querySelectorAll(".column")[colNum].innerHTML += __webpack_require__(0).replace("{PERMISSION}",permission.displayName).replace("{ID}",permission.namespace);
-          if (groupObj.permissions.indexOf(permission.namespace.toLowerCase()) > -1) {
+          if (groupObj.permissions.indexOf(permission.namespace.toUpperCase()) > -1) {
             gTab.querySelector("input[data-permission='"+permission.namespace+"']").setAttribute("checked","");
           }
 
-          if (groupObj.disabledPermissions.indexOf(permission.namespace.toLowerCase()) > -1) {
+          if (groupObj.disabledPermissions.indexOf(permission.namespace.toUpperCase()) > -1) {
             gTab.querySelector("input[data-permission='"+permission.namespace+"']").setAttribute("disabled","");
           }
           colNum++;
@@ -1367,13 +1367,8 @@ ui.createTab = function(GM) {
               return;
             }
             _this.ui.alert("Are you sure you want to delete this group?",[
-              {
-                text: "Delete",
-                style: "danger",
-              },
-              {
-                text: "Cancel"
-              }
+              "Delete",
+              "Cancel"
             ], function(action){
               if (action === "Cancel") {return}
               _this.Management.destroyGroup(groupObj.id);
