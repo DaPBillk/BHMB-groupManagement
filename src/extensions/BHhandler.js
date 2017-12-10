@@ -1,5 +1,5 @@
 module.exports = function(ex, namespace, player, args, raw) {
-  console.log(ex,namespace,player,args,raw);
+  //console.log(ex,namespace,player,args,raw);
   var world = ex.world;
   switch (namespace) {
     case "BH.HELP":

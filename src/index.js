@@ -14,7 +14,7 @@ const GMUI = require("./ui/GM.js");
 
     MessageBot.registerExtension("DaPersonMGN/groupManagement", function(ex, world) {
       //Debugging purposes.
-      window.ex = ex;
+      //window.ex = ex;
 
       ex.remove = function() {
         world.onMessage.unsub(ex.Management.commandHandler);

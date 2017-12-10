@@ -89,7 +89,7 @@ const GMUI = __webpack_require__(9);
 
     MessageBot.registerExtension("DaPersonMGN/groupManagement", function(ex, world) {
       //Debugging purposes.
-      window.ex = ex;
+      //window.ex = ex;
 
       ex.remove = function() {
         world.onMessage.unsub(ex.Management.commandHandler);
@@ -688,7 +688,7 @@ module.exports = [
 /***/ (function(module, exports) {
 
 module.exports = function(ex, namespace, player, args, raw) {
-  console.log(ex,namespace,player,args,raw);
+  //console.log(ex,namespace,player,args,raw);
   var world = ex.world;
   switch (namespace) {
     case "BH.HELP":
