@@ -1,15 +1,27 @@
 {
   "name": "bhmb-groupmanagement",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Permission extension for The Blockheads MessageBot.",
   "main": "./build/bundle.js",
-  "repository": "https://github.com/dapersonmgn/BHMB-groupManagement",
+  "scripts": {
+    "build": "rollup --config",
+    "build:watch": "rollup --config --watch",
+    "test": "ts-node node_modules/tape/bin/tape ./tests/**/*.ts"
+  },
   "author": "DaPersonMGN",
-  "license": "MIT",
+  "license": "ISC",
   "devDependencies": {
-    "raw-loader": "^0.5.1",
-    "webpack": "^4.2.0",
-    "@bhmb/bot": "^7.0.0-a8",
-    "@bhmb/ui": "^1.0.0-a5"
+    "@types/tape": "^4.2.33",
+    "rollup": "^0.68.1",
+    "rollup-plugin-string": "^2.0.2",
+    "rollup-plugin-typescript2": "^0.18.1",
+    "tape": "^4.9.1",
+    "tslint": "^5.12.0",
+    "tslint-config-standard": "^8.0.1",
+    "typescript": "^3.2.2"
+  },
+  "dependencies": {
+    "@bhmb/bot": "^7.1.2",
+    "@bhmb/ui": "^1.0.8"
   }
 }
