@@ -16,14 +16,13 @@ export class PermissionManager {
    * Add a permission, will return if the operation was successful.
    */
   add (permissionData : PermissionData) : boolean {
-    const id = permissionData.id.toLocaleLowerCase();
-    if (!this.get(id)) {
+    if (!this.get(permissionData.id)) {
       const permission = new Permission(this, permissionData.extension, {
         id: permissionData.id,
         name: permissionData.name,
         category: permissionData.category
       });
-      this._permissions.set(id, permission);
+      this._permissions.set(permission.id, permission);
       return true;
     }
     return false;
@@ -62,6 +61,6 @@ export class PermissionManager {
   }
 
   private resolvePermissionID (permissionResolvable : PermissionResolvable) : string {
-    return typeof permissionResolvable === "string" ? permissionResolvable.toLocaleLowerCase() : permissionResolvable.id;
+    return typeof permissionResolvable === "string" ? permissionResolvable : permissionResolvable.id;
   }
 };

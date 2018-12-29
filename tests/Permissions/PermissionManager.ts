@@ -45,18 +45,20 @@ const createPermissionManager = () => {
 };
 
 test("PermissionManager - create permission", t => {
-  t.plan(2);
+  t.plan(3);
   const PM = createPermissionManager();
-  const result = PM.add({
+  const data = {
     extension: "test",
     id: "permission",
     name: "Test Permission",
     category: "Test Category",
     command: "TEST",
     callback: () => {}
-  });
-  t.doesNotEqual(PM.get("permission"), undefined);
-  t.equals(result, true);
+  };
+  const result = PM.add(data);
+  t.doesNotEqual(PM.get("permission"), undefined); //The permission should exist.
+  t.equals(result, true); //The result should return true.
+  t.equals(PM.add(data), false); //Adding it again should return false.
 });
 
 test("PermissionManager - delete permission", t => {

@@ -15,7 +15,7 @@ export class Permissions {
 
   parent: Group|User;
   
-  constructor (parent : Group|User, permissions? : {allowed: string[], disabled: string[]}) {
+  constructor (parent : Group|User, permissions? : PermissionsSaveData) {
     const data = permissions || {
       allowed: [],
       disabled: []
@@ -34,7 +34,7 @@ export class Permissions {
 
   add (permissionResolvable : PermissionResolvable, sudo : boolean = false, disabled : boolean = false) : boolean {
     const permission = this.resolvePermission(permissionResolvable);
-    if (!permission || this.allowed.has(permission.id) || (this.disabled.has(permission.id) && !sudo)) return false;
+    if (!permission || (this.allowed.has(permission.id) && !disabled && !this.disabled.has(permission.id)) || (this.disabled.has(permission.id) && !sudo)) return false;
     this.allowed.add(permission.id);
     if (disabled && !this.disabled.has(permission.id)) {
       this.disabled.add(permission.id);

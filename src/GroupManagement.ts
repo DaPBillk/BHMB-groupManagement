@@ -13,9 +13,9 @@ export class GroupManagement {
   extension: MessageBotExtension;
 
   constructor (ex : MessageBotExtension) {
+    this.extension = ex;
     this.groups = new GroupManager(this);
     this.permissions = new PermissionManager(this);
-    this.extension = ex;
   }
 
   /**
