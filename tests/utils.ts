@@ -1,9 +1,6 @@
 import { MessageBot, Storage, World, MessageBotExtension } from "@bhmb/bot";
 import { GroupManagement } from "../src/GroupManagement";
-import { UserManager } from "../src/Users/UserManager";
-import { GroupManager } from "../src/Groups/GroupManager";
 import { Group } from "../src/Groups/Group";
-import { PermissionManager } from "../src/Permissions/PermissionManager";
 import { WorldApi, WorldStatus, WorldSizes, WorldPrivacy, WorldOverview } from "blockheads-api-interface";
 import { Permissions, PermissionsSaveData } from "../src/Permissions/Permissions";
 
@@ -76,17 +73,17 @@ const createGroupManagement = () => new GroupManagement(createExtension());
 
 const createUserManager = () => {
   const GM = createGroupManagement();
-  return new UserManager(GM);
+  return GM.users;
 };
 
 const createGroupManager = () => {
   const GM = createGroupManagement();
-  return new GroupManager(GM);
+  return GM.groups;
 };
 
 const createPermissionManager = () => {
   const GM = createGroupManagement();
-  return new PermissionManager(GM);
+  return GM.permissions;
 };
 
 const createPermissions = (permissions? : PermissionsSaveData, addPermissions? : string[]) => {

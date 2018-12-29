@@ -56,24 +56,19 @@ export class Permission {
     this.callback = callback;
     this.command = command;
     this.manager = manager;
-    manager.management.extension.world.onMessage.sub(this.handleCommand);
+    manager.management.extension.world.onMessage.sub(this.handleMessage);
 
   }
 
-  handleCommand ({player, message} : {player: Player, message: string}) {
+  handleMessage ({player, message} : {player: Player, message: string}) {
     const [command, ...argsRaw] = message.split(" ");
     const args = argsRaw.join(" ");
     const user = this.manager.management.users.get(player);
     if (this.command.toLocaleUpperCase() === command.toLocaleUpperCase().slice(1)) {
       if (user.permissions.has(this.id)) {
         if (this.ignore) {
-          if (this.ignore.staff) {
-            if (player.isStaff) {
-              return this.callback(player, args);
-            }
-          }
-          if ((this.ignore.admin && player.isAdmin) || (this.ignore.mod && player.isMod)) {
-            return this.callback(player, args);
+          if (!(this.ignore.staff && player.isStaff) && !(this.ignore.admin && player.isAdmin) && !(this.ignore.mod && player.isMod)) {
+            this.callback(player, args);
           }
         } else {
           this.callback(player, args);
