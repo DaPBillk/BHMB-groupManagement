@@ -1,48 +1,6 @@
 import * as test from "tape";
-import { MessageBot, Storage, World, MessageBotExtension } from "@bhmb/bot";
-import { GroupManagement } from "../../src/GroupManagement";
-import { PermissionManager } from "../../src/Permissions/PermissionManager";
+import { createPermissionManager } from "../utils";
 import { Permission } from "../../src/Permissions/Permission";
-
-//Thx bib. @_@
-class MockStorage extends Storage {
-  storage = new Map<string, any>()
-  constructor(private _prefix: string = '') {
-      super()
-  }
-
-  get<T>(key: string, fallback: T): T {
-      return this.storage.get(this._prefix + key) || fallback
-  }
-  set(key: string, value: any): void {
-      this.storage.set(this._prefix + key, value)
-  }
-  clear(_prefix?: string | undefined): void {
-      throw new Error('Not implemented')
-  }
-  prefix(_prefix: string): Storage {
-      return this;
-  }
-  keys(): string[] {
-      throw new Error('Not implemented')
-  }
-};
-
-const createWorld = () => ({} as World);
-
-const createBot = () : MessageBot => ({
-  world: createWorld(),
-  storage: new MockStorage()
-}) as any;
-
-const createExtension = () => new MessageBotExtension("test", createBot());
-
-const createGroupManagement = () => new GroupManagement(createExtension());
-
-const createPermissionManager = () => {
-  const GM = createGroupManagement();
-  return new PermissionManager(GM);
-};
 
 test("PermissionManager - create permission", t => {
   t.plan(3);

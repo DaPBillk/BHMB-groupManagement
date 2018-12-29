@@ -4,8 +4,7 @@ import { UserManager } from "../src/Users/UserManager";
 import { GroupManager } from "../src/Groups/GroupManager";
 import { Group } from "../src/Groups/Group";
 import { PermissionManager } from "../src/Permissions/PermissionManager";
-import { WorldLists } from "blockheads-api-interface";
-import { PlayerInfo, Player } from "@bhmb/bot/player";
+import { WorldApi, WorldStatus, WorldSizes, WorldPrivacy, WorldOverview } from "blockheads-api-interface";
 import { Permissions, PermissionsSaveData } from "../src/Permissions/Permissions";
 
 //Thx bib. @_@
@@ -33,18 +32,41 @@ class MockStorage extends Storage {
 };
 
 //Thanks again. >.<
-const defaultInfo: PlayerInfo = { ip: '0.0.0.0', ips: ['0.0.0.0', '0.0.0.1'], joins: 1};
 const lists = { adminlist: [], modlist: [], whitelist: [], blacklist: [] };
-const makePlayer = (name : string, lists2: Partial<WorldLists> = {}, info : Partial<PlayerInfo> = {}) => {
-  return new Player(name, {...defaultInfo, ...info}, {...lists, ...lists2});
+
+const overview: WorldOverview = Object.freeze({
+  name: 'WORLD',
+  owner: 'OWNER',
+  created: new Date(),
+  last_activity: new Date(),
+  credit_until: new Date(),
+  link: 'link',
+  pvp: false,
+  privacy: 'public' as WorldPrivacy, // Inferring types is broken here
+  password: false,
+  size: '1x' as WorldSizes, // Ditto
+  whitelist: false,
+  online: ['ONLINE'],
+  status: 'online' as WorldStatus
+});
+
+const api: WorldApi = {
+  get name() { return 'hi' },
+  get id() { return '123' },
+  async getStatus() { return 'online' as WorldStatus },
+  async getLists() { return lists },
+  async setLists() { },
+  async getOverview() { return overview },
+  async getLogs() { return [] },
+  async send(_message: string) { },
+  async getMessages(_lastId: number) { return { nextId: 0, log: [] } },
+  async start() { },
+  async stop() { },
+  async restart() { }
 };
 
-const createWorld = () : World => ({
-  getPlayer: (name : string) => makePlayer(name)
-} as any);
-
 const createBot = () : MessageBot => ({
-  world: createWorld(),
+  world: new World(api, new MockStorage()),
   storage: new MockStorage()
 }) as any;
 

@@ -9,6 +9,11 @@ interface ExtensionPermission {
     category: string;
     name: string;
   };
+  ignore?: {
+    admin?: boolean,
+    mod?: boolean,
+    staff?: boolean
+  }
 };
 
 MessageBot.registerExtension("dapersonmgn/groupManagement", ex => {
@@ -44,7 +49,8 @@ MessageBot.registerExtension("dapersonmgn/groupManagement", ex => {
           name: permissionData.display.name,
           id: permissionData.id,
           command: permissionData.command,
-          callback: permissionData.callback
+          callback: permissionData.callback,
+          ignore: permissionData.ignore
         });
       }
 

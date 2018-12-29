@@ -20,7 +20,10 @@ export class PermissionManager {
       const permission = new Permission(this, permissionData.extension, {
         id: permissionData.id,
         name: permissionData.name,
-        category: permissionData.category
+        category: permissionData.category,
+        ignore: permissionData.ignore,
+        command: permissionData.command,
+        callback: permissionData.callback
       });
       this._permissions.set(permission.id, permission);
       return true;
