@@ -36,7 +36,11 @@ export class PermissionManager {
    */
   delete (permissionResolvable : PermissionResolvable) : boolean {
     const id = this.resolvePermissionID(permissionResolvable);
+    const permission = this._permissions.get(id) as Permission;
     const deleted = this._permissions.delete(id);
+    if (deleted) {
+      this.management.extension.world.onMessage.unsub(permission.handleMessage);
+    }
     return deleted;
   }
 
