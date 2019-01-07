@@ -5,8 +5,8 @@ import { Permissions, PermissionsSaveData } from "../Permissions/Permissions";
 export type PlayerResolvable = User|Player|string;
 
 export interface UserData {
-  player: Player;
-  permissions?: [];
+  player: Player|string;
+  permissions?: PermissionsSaveData;
 }
 
 export interface UserSaveData {
@@ -24,11 +24,12 @@ export class User {
 
   constructor (userData : UserData, manager : UserManager) {
     this.manager = manager;
-    this.player = userData.player;
-    this.permissions = new Permissions(this, {
-      allowed: userData.permissions || [],
-      disabled: []
-    });
+    if (typeof userData.player === "string") {
+      this.player = this.manager.management.extension.world.getPlayer(userData.player);
+    } else {
+      this.player = userData.player;
+    }
+    this.permissions = new Permissions(this, userData.permissions);
   }
 
   /**

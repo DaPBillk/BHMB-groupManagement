@@ -10,7 +10,7 @@ export class UserManager {
 
   constructor (management : GroupManagement) {
     this.management = management;
-    this._users = new Map(this.management.extension.storage.get(SAVE_KEY, []));
+    this._users = new Map(this.management.extension.storage.get(SAVE_KEY, []).map((data : UserSaveData) => [data.player, new User(data, this)] as [string, User]));
   }
 
   get (playerResolvable : PlayerResolvable) {
@@ -36,9 +36,9 @@ export class UserManager {
   }
 
   save () {
-    let saveData : [string, UserSaveData][] = [];
-    for (const [name, user] of this._users) {
-      saveData.push([name, user.data]);
+    let saveData : UserSaveData[] = [];
+    for (const [, user] of this._users) {
+      saveData.push(user.data);
     }
     this.management.extension.storage.set(SAVE_KEY, saveData);
   }

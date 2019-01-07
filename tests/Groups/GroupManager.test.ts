@@ -1,6 +1,8 @@
 import * as test from "tape";
-import { createGroupManager } from "../utils";
-import { Group } from "../../src/Groups/Group";
+import { createGroupManager, createExtension } from "../utils";
+import { Group, GroupSaveData } from "../../src/Groups/Group";
+import { GroupManagement } from "../../src/GroupManagement";
+import { GroupManager } from "../../src/Groups/GroupManager";
 
 test("GroupManager - create group", t => {
   t.plan(1);
@@ -91,4 +93,24 @@ test("GroupManager - next ID should increment upon a group being created.", t =>
     name: "test"
   });
   t.equals(groupManager.nextID, 2);
+});
+
+test("GroupManager - Loads groups properly.", t => {
+  t.plan(1);
+  const extension = createExtension();
+  extension.storage.set("groups", [
+    {
+      id: -1,
+      name: "Group",
+      permissions: {
+        allowed: [],
+        disabled: []
+      },
+      players: [],
+      managed: false
+    }
+  ] as GroupSaveData[]);
+  const groupManagement = new GroupManagement(extension);
+  const groupManager = new GroupManager(groupManagement);
+  t.doesNotEqual(groupManager.get("Group"), undefined);
 });

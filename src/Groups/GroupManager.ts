@@ -11,7 +11,12 @@ export class GroupManager {
 
   constructor (management : GroupManagement) {
     this.management = management;
-    this._groups = new Map(this.management.extension.storage.get(SAVE_KEY, []));
+
+    // console.log(this.management.extension.storage.get(SAVE_KEY, []).map((data) => {
+    //   return [data];
+    // }));
+    
+    this._groups = new Map(this.management.extension.storage.get(SAVE_KEY, []).map((groupData : GroupSaveData) => [groupData.id, new Group(groupData, this)] as [number, Group]));
   }
 
   /**
@@ -23,7 +28,6 @@ export class GroupManager {
       const id = this.nextID;
       const group = new Group({id, ...groupData}, this);
       this._groups.set(id, group);
-      //TODO: Add to UI.
       this.save();
       return group;
     }
@@ -95,9 +99,9 @@ export class GroupManager {
    * Save the group data to storage.
    */
   save () {
-    let saveData : [number, GroupSaveData][] = [];
-    for (const [id, group] of this._groups) {
-      saveData.push([id, group.data]);
+    let saveData : GroupSaveData[] = [];
+    for (const [, group] of this._groups) {
+      saveData.push(group.data);
     }
     this.management.extension.storage.set(SAVE_KEY, saveData);
   }

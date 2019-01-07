@@ -6,7 +6,7 @@
   "scripts": {
     "build": "rollup --config",
     "build:watch": "rollup --config --watch",
-    "test": "ts-node node_modules/tape/bin/tape ./tests/**/*.ts"
+    "test": "ts-node node_modules/tape/bin/tape ./tests/**/*.test.ts"
   },
   "author": "DaPersonMGN",
   "license": "ISC",

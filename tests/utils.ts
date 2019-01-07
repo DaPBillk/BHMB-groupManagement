@@ -64,7 +64,8 @@ const api: WorldApi = {
 
 const createBot = () : MessageBot => ({
   world: new World(api, new MockStorage()),
-  storage: new MockStorage()
+  storage: new MockStorage(),
+  getExports () {}
 }) as any;
 
 const createExtension = () => new MessageBotExtension("test", createBot());
@@ -111,5 +112,7 @@ export {
   createUserManager,
   createGroupManager,
   createPermissionManager,
-  createPermissions
+  createPermissions,
+  createExtension,
+  createBot
 };
