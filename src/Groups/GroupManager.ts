@@ -42,7 +42,7 @@ export class GroupManager {
     if (!group) return false;
     this._groups.delete(group.id);
     this.save();
-    //TODO: Remove from UI.
+    this.management.ui.deleteGroup(group);
     return true;
   }
 
@@ -72,7 +72,7 @@ export class GroupManager {
     if (group && !this.get(newName) && !group.managed) {
       group.name = newName;
       this.save();
-      //TODO: UI.
+      this.management.ui.refreshGroup(group);
       return true;
     }
     return false;

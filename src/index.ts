@@ -27,17 +27,6 @@ MessageBot.registerExtension("dapersonmgn/groupManagement", ex => {
    * @param extension Name of the extension.
    */
   const handleExtensionRegister = (extension : string) => {
-    const permissions = GM.permissions.getExtensionPermissions(extension);
-    for (const permission of permissions) {
-      permission.delete();
-    }
-  };
-
-  /**
-   * Listener for when an extension is deregistered.
-   * @param extension Name of the extension.
-   */
-  const handleExtensionDeregister = (extension : string) => {
     const extensionExports = ex.bot.getExports(extension);
     if (extensionExports && extensionExports.groupManagement) {
 
@@ -58,6 +47,17 @@ MessageBot.registerExtension("dapersonmgn/groupManagement", ex => {
   };
 
   /**
+   * Listener for when an extension is deregistered.
+   * @param extension Name of the extension.
+   */
+  const handleExtensionDeregister = (extension : string) => {
+    const permissions = GM.permissions.getExtensionPermissions(extension);
+    for (const permission of permissions) {
+      permission.delete();
+    }
+  };
+
+  /**
    * Loads all extensions that were loaded before this extension.
    */
   const handleExistingExtensions = () => {
@@ -70,6 +70,7 @@ MessageBot.registerExtension("dapersonmgn/groupManagement", ex => {
   ex.remove = () => {
     MessageBot.extensionRegistered.unsub(handleExtensionRegister);
     MessageBot.extensionDeregistered.unsub(handleExtensionDeregister);
+    GM.ui.uninstall();
   };
 
   MessageBot.extensionRegistered.sub(handleExtensionRegister);
