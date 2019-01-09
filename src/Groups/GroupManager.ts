@@ -39,7 +39,7 @@ export class GroupManager {
    */
   delete (groupResolvable : GroupResolvable) : boolean {
     const group = this.resolveGroup(groupResolvable);
-    if (!group) return false;
+    if (!group || group.managed) return false;
     this._groups.delete(group.id);
     this.save();
     this.management.ui.deleteGroup(group);

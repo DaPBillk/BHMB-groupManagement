@@ -67,6 +67,12 @@ export class PermissionManager {
     return this._permissions.get(id);
   }
 
+  uninstall () {
+    for (const [, permission] of this._permissions) {
+      this.delete(permission);
+    }
+  }
+
   private resolvePermissionID (permissionResolvable : PermissionResolvable) : string {
     return typeof permissionResolvable === "string" ? permissionResolvable : permissionResolvable.id;
   }

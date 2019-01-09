@@ -122,7 +122,7 @@
        */
       delete(groupResolvable) {
           const group = this.resolveGroup(groupResolvable);
-          if (!group)
+          if (!group || group.managed)
               return false;
           this._groups.delete(group.id);
           this.save();
@@ -295,6 +295,11 @@
           const id = this.resolvePermissionID(permissionResolvable);
           return this._permissions.get(id);
       }
+      uninstall() {
+          for (const [, permission] of this._permissions) {
+              this.delete(permission);
+          }
+      }
       resolvePermissionID(permissionResolvable) {
           return typeof permissionResolvable === "string" ? permissionResolvable : permissionResolvable.id;
       }
@@ -379,7 +384,7 @@
       }
   }
 
-  var groupTabHTML = "<div class=\"container\">\r\n    <div class=\"box\" style=\"min-width: 35%; max-width: 35%; min-height: 95%; float: left; margin-top: 1%;\">\r\n      <aside class=\"menu\"></aside>\r\n    </div>\r\n    <div class=\"box\" style=\"min-width: 63%; max-width: 63%; min-height: 95%; float: right; margin-top: 1%;\">\r\n      <label>\r\n        <span class=\"title\">{TITLE}</span>\r\n      </label>\r\n      <label>\r\n        <span class=\"subtitle\" style=\"padding-left: 1%;\">\r\n          <a href=\"#\" data-action=\"rename\">Rename</a> - <a href=\"#\" data-action=\"delete\">Delete</a>\r\n        </span>\r\n        <span class=\"subtitle is-pulled-right\">\r\n          <a href=\"#\" data-action=\"create\">New Group</a>\r\n        </span>\r\n      </label>\r\n    </div>\r\n  </div>\r\n  ";
+  var groupTabHTML = "<div class=\"container\">\r\n    <div class=\"box\" style=\"min-width: 35%; max-width: 35%; float: left; margin-top: 1%;\">\r\n      <aside class=\"menu\"></aside>\r\n    </div>\r\n    <div class=\"box\" style=\"min-width: 63%; max-width: 63%; float: right; margin-top: 1%;\">\r\n      <label>\r\n        <span class=\"title\">{TITLE}</span>\r\n      </label>\r\n      <label>\r\n        <span class=\"subtitle\" style=\"padding-left: 1%;\">\r\n          <a href=\"#\" data-action=\"rename\">Rename</a> - <a href=\"#\" data-action=\"delete\">Delete</a>\r\n        </span>\r\n        <span class=\"subtitle is-pulled-right\">\r\n          <a href=\"#\" data-action=\"create\">New Group</a>\r\n        </span>\r\n      </label>\r\n    </div>\r\n  </div>\r\n  ";
 
   var permissionHTML = "<p class=\"control\">\r\n  <label class=\"checkbox\">\r\n    <input type=\"checkbox\" data-permission=\"{ID}\" {ALLOWED}{DISABLED}>\r\n    {PERMISSION}\r\n  </label>\r\n</p>";
 
@@ -415,29 +420,47 @@
                   categories[parentCategory][subCategory].push(permission);
               }
               let categoryHTML = "";
+              let firstSubCategorySelected = false;
+              let isSelected = false;
               for (const parentCategory in categories) {
                   categoryHTML += `<p class="menu-label is-unselectable" data-category="${parentCategory}">${parentCategory}</p><ul class="menu-list" data-category="${parentCategory}">`;
                   for (const subCategory in categories[parentCategory]) {
-                      categoryHTML += `<li><a href="#" class="is-unselectable" data-subcategory="${subCategory}">${subCategory}</a></li>`;
+                      if (firstSubCategorySelected) {
+                          //Normal.
+                          isSelected = false;
+                          categoryHTML += `<li><a href="#" class="is-unselectable " data-subcategory="${subCategory}">${subCategory}</a></li>`;
+                      }
+                      else {
+                          //Selected.
+                          isSelected = true;
+                          firstSubCategorySelected = true;
+                          categoryHTML += `<li><a href="#" class="is-unselectable" style="background: #182b73; color: #ffffff;" data-subcategory="${subCategory}" data-selected>${subCategory}</a></li>`;
+                      }
                       const columns = [[], [], []];
                       let colNum = 0;
                       for (const permission of permissions) {
-                          if (columns.length === colNum) {
-                              colNum = 0;
+                          if (permission.category === `${parentCategory}/${subCategory}`) {
+                              if (columns.length === colNum) {
+                                  colNum = 0;
+                              }
+                              columns[colNum].push(permissionHTML
+                                  .replace("{ID}", permission.id)
+                                  .replace("{PERMISSION}", permission.name)
+                                  .replace("{ALLOWED}", group.permissions.has(permission) ? "checked " : "")
+                                  .replace("{DISABLED}", group.permissions.disabled.has(permission.id) ? "disabled" : ""));
+                              colNum++;
                           }
-                          columns[colNum].push(permissionHTML
-                              .replace("{ID}", permission.id)
-                              .replace("{PERMISSION}", permission.name)
-                              .replace("{ALLOWED}", group.permissions.has(permission) ? "checked " : "")
-                              .replace("{DISABLED}", group.permissions.disabled.has(permission.id) ? "disabled" : ""));
-                          colNum++;
                       }
-                      let subCategoryTab = `<div data-subcategory="${subCategory}" class="is-invisible"><div class="columns"><div class="column">${columns[0].join("")}</div><div class="column">${columns[1].join("")}</div><div class="column">${columns[2].join("")}</div></div></div>`;
+                      let subCategoryTab = `<div data-subcategory="${subCategory}" ${isSelected ? "" : 'class="is-invisible" style="display: none;"'}><div class="columns" style="padding-top: 2.5%;"><div class="column">${columns[0].join("")}</div><div class="column">${columns[1].join("")}</div><div class="column">${columns[2].join("")}</div></div></div>`;
                       tab.querySelectorAll(".box")[1].innerHTML += subCategoryTab;
                   }
                   categoryHTML += `</ul>`;
               }
               tab.querySelector(".menu").innerHTML = categoryHTML;
+              tab.querySelector('a[data-action="rename"]').addEventListener("click", event => this.renameGroupListener(event, group));
+              tab.querySelector('a[data-action="delete"]').addEventListener("click", event => this.deleteGroupListener(event, group));
+              tab.querySelector('a[data-action="create"]').addEventListener("click", () => this.addGroupListener());
+              Array.from(tab.querySelectorAll("a[data-subcategory]")).map(element => element.addEventListener("click", event => this.subcategoryListener(event, group)));
           }
           // TODO: Select this tab.
           return tab;
@@ -445,14 +468,78 @@
       deleteGroup(group) {
           if (group.tab) {
               this._ui.removeTab(group.tab);
-              // TODO: Select first tab.
           }
       }
       refreshGroup(group) {
           if (group.tab) {
               this.deleteGroup(group);
               group.tab = this.addGroup(group);
-              // TODO: Target new tab..
+          }
+      }
+      deleteGroupListener(_, group) {
+          this._ui.alert("Are you sure?", [
+              {
+                  text: "Yes",
+                  style: "is-danger"
+              },
+              {
+                  text: "Cancel"
+              }
+          ], response => {
+              if (response === "Yes") {
+                  const result = group.delete();
+                  if (!result) {
+                      this._ui.notify("Failed to delete group.");
+                  }
+                  else {
+                      this._ui.toggleMenu();
+                  }
+              }
+          });
+      }
+      renameGroupListener(_, group) {
+          this._ui.prompt("What would you like to rename this group to?", newName => {
+              if (newName) {
+                  const result = group.rename(newName);
+                  if (!result) {
+                      this._ui.notify("Failed to rename group.");
+                  }
+                  else {
+                      this._ui.toggleMenu();
+                  }
+              }
+          });
+      }
+      addGroupListener() {
+          this._ui.prompt("What would you like to name this new group?", name => {
+              if (name) {
+                  const result = this.management.groups.add({
+                      name
+                  });
+                  this._ui.toggleMenu();
+                  if (!result) {
+                      this._ui.notify("This group name already exists!");
+                  }
+              }
+          });
+      }
+      subcategoryListener(event, group) {
+          const tab = group.tab;
+          const wantedSubCategory = event.target.getAttribute("data-subcategory");
+          const tabToShow = tab.querySelector(`div[data-subcategory="${wantedSubCategory}"]`);
+          if (tabToShow.classList.contains("is-invisible")) {
+              const oldSelectedCategory = event.target.parentElement.parentElement.querySelector("a[data-selected]");
+              if (oldSelectedCategory) {
+                  oldSelectedCategory.setAttribute("style", "");
+                  oldSelectedCategory.removeAttribute("data-selected");
+                  const tabToHide = tab.querySelector(`div[data-subcategory="${oldSelectedCategory.getAttribute("data-subcategory")}"]`);
+                  tabToHide.classList.add("is-invisible");
+                  tabToHide.setAttribute("style", "display: none");
+              }
+              event.target.setAttribute("style", "background: #182b73; color: #ffffff;");
+              event.target.setAttribute("data-selected", "");
+              tabToShow.classList.remove("is-invisible");
+              tabToShow.setAttribute("style", "");
           }
       }
   }
@@ -466,6 +553,7 @@
           this.ui = new UI(this);
       }
       uninstall() {
+          this.permissions.uninstall();
           this.ui.uninstall();
       }
       /**
@@ -477,8 +565,89 @@
       }
   }
 
+  var callback = () => {
+  };
+
+  const BlockheadPermissions = [
+      {
+          callback,
+          id: "BH.HELP",
+          command: "HELP",
+          ignore: {
+              staff: true
+          },
+          display: {
+              category: "Blockheads/Moderator Commands",
+              name: "View the /help message"
+          },
+      },
+      {
+          callback,
+          id: "BH.PLAYERS",
+          command: "PLAYERS",
+          ignore: {
+              staff: true
+          },
+          display: {
+              category: "Blockheads/Administrator Commands",
+              name: "View the /players message"
+          }
+      }
+  ];
+
   bot.MessageBot.registerExtension("dapersonmgn/groupManagement", ex => {
       const GM = new GroupManagement(ex);
+      for (const permission of BlockheadPermissions) {
+          const { id, command, callback, ignore } = permission;
+          GM.permissions.add({
+              id,
+              command,
+              callback,
+              ignore,
+              extension: "dapersonmgn/groupManagement",
+              category: permission.display.category,
+              name: permission.display.name
+          });
+      }
+      if (!GM.groups.get("Administrator")) {
+          GM.groups.add({
+              name: "Administrator",
+              permissions: {
+                  allowed: [],
+                  disabled: []
+              },
+              managed: true
+          });
+      }
+      if (!GM.groups.get("Moderator")) {
+          GM.groups.add({
+              name: "Moderator",
+              permissions: {
+                  allowed: [],
+                  disabled: []
+              },
+              managed: true
+          });
+      }
+      if (!GM.groups.get("Anyone")) {
+          GM.groups.add({
+              name: "Anyone",
+              permissions: {
+                  allowed: [],
+                  disabled: []
+              },
+              managed: true
+          });
+      }
+      if (!GM.groups.get("Unmanaged")) {
+          GM.groups.add({
+              name: "Unmanaged",
+              permissions: {
+                  allowed: [],
+                  disabled: []
+              }
+          });
+      }
       ex.exports.manager = GM;
       /**
        * Listener for when an extension is registered.

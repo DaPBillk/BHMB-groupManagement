@@ -1,7 +1,8 @@
 import { MessageBot, Player } from "@bhmb/bot";
 import { GroupManagement } from "./GroupManagement";
+import { BlockheadPermissions } from "./Extensions/Blockheads";
 
-interface ExtensionPermission {
+export interface ExtensionPermission {
   callback: (player: Player, args: string) => void;
   id: string;
   command: string;
@@ -19,6 +20,58 @@ interface ExtensionPermission {
 MessageBot.registerExtension("dapersonmgn/groupManagement", ex => {
 
   const GM = new GroupManagement(ex);
+  for (const permission of BlockheadPermissions) {
+    const {id, command, callback, ignore} = permission;
+    GM.permissions.add({
+      id,
+      command,
+      callback,
+      ignore,
+      extension: "dapersonmgn/groupManagement",
+      category: permission.display.category,
+      name: permission.display.name
+    });
+  }
+
+  if (!GM.groups.get("Administrator")) {
+    GM.groups.add({
+      name: "Administrator",
+      permissions: {
+        allowed: [],
+        disabled: []
+      },
+      managed: true
+    });
+  }
+  if (!GM.groups.get("Moderator")) {
+    GM.groups.add({
+      name: "Moderator",
+      permissions: {
+        allowed: [],
+        disabled: []
+      },
+      managed: true
+    });
+  }
+  if (!GM.groups.get("Anyone")) {
+    GM.groups.add({
+      name: "Anyone",
+      permissions: {
+        allowed: [],
+        disabled: []
+      },
+      managed: true
+    });
+  }
+  if (!GM.groups.get("Unmanaged")) {
+    GM.groups.add({
+      name: "Unmanaged",
+      permissions: {
+        allowed: [],
+        disabled: []
+      }
+    });
+  }
 
   ex.exports.manager = GM;
 

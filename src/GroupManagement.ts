@@ -25,6 +25,7 @@ export class GroupManagement {
   }
 
   uninstall () {
+    this.permissions.uninstall();
     this.ui.uninstall();
   }
 
