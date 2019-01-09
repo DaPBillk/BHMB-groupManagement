@@ -98,9 +98,6 @@
   class GroupManager {
       constructor(management) {
           this.management = management;
-          // console.log(this.management.extension.storage.get(SAVE_KEY, []).map((data) => {
-          //   return [data];
-          // }));
           this._groups = new Map(this.management.extension.storage.get(SAVE_KEY, []).map((groupData) => [groupData.id, new Group(groupData, this)]));
       }
       /**
@@ -262,8 +259,8 @@
                   command: permissionData.command,
                   callback: permissionData.callback
               });
-              this.management.ui.addPermission(permission);
               this._permissions.set(permission.id, permission);
+              this.management.ui.addPermission(permission);
               return true;
           }
           return false;
@@ -413,23 +410,35 @@
           const groups = this.management.groups.get();
           for (const [, group] of groups) {
               const tab = group.tab;
+              let firstSubCategory = false;
               if (!tab.querySelector(`p[data-category="${parentCategory}"]`)) {
                   //Parent category does not exist, we need to create it.
                   tab.querySelector(".menu").innerHTML += `<p class="menu-label is-unselectable" data-category="${parentCategory}">${parentCategory}</p><ul class="menu-list" data-category="${parentCategory}"></ul>`;
               }
               if (!tab.querySelector(`ul[data-category="${parentCategory}"] > li > a[data-subcategory="${subCategory}"]`)) {
                   //Subcategory doesn't exist, create it.
+                  firstSubCategory = true;
                   const listEl = tab.querySelector(`ul[data-category="${parentCategory}"]`);
                   listEl.innerHTML += `<li><a href="#" class="is-unselectable" data-subcategory="${subCategory}">${subCategory}</a></li>`;
+                  listEl.querySelector(`a[data-subcategory="${subCategory}"]`).addEventListener("click", event => this.subcategoryListener(event, group));
+                  tab.querySelectorAll(".box")[1].innerHTML += `<div data-subcategory="${subCategory}" class="is-invisible" style="display: none;"><div class="columns" style="padding-top: 2.5%;"><div class="column"></div><div class="column"></div><div class="column"></div></div></div>`;
               }
               //Add the permission to it's tab.
+              const columns = Array.from(tab.querySelectorAll(`div[data-subcategory="${subCategory}"] .column`));
+              const col = columns.sort((colA, colB) => colA.querySelectorAll("input[data-permission]").length - colB.querySelectorAll("input[data-permission]").length)[0];
+              col.innerHTML += permissionHTML
+                  .replace("{ID}", permission.id)
+                  .replace("{PERMISSION}", permission.name)
+                  .replace("{ALLOWED}", group.permissions.has(permission) ? "checked " : "")
+                  .replace("{DISABLED}", group.permissions.disabled.has(permission.id) ? "disabled" : "");
+              if (firstSubCategory) {
+                  tab.querySelector(`a[data-subcategory="${subCategory}"]`).click();
+              }
           }
       }
       addGroup(group) {
           let tab;
-          console.log(123);
           if (this._ui) {
-              console.log(group);
               tab = this._ui.addTab(group.name, this.namespace);
               tab.innerHTML = groupTabHTML.replace("{TITLE}", group.name);
               const permissions = bot.MessageBot.extensions.map(extension => group.manager.management.permissions.getExtensionPermissions(extension)).reduce((pSetA, pSetB) => pSetA.concat(pSetB));
@@ -482,11 +491,8 @@
                   categoryHTML += `</ul>`;
               }
               tab.querySelector(".menu").innerHTML = categoryHTML;
-              tab.querySelector('a[data-action="rename"]').addEventListener("click", event => this.renameGroupListener(event, group));
-              tab.querySelector('a[data-action="delete"]').addEventListener("click", event => this.deleteGroupListener(event, group));
-              tab.querySelector('a[data-action="create"]').addEventListener("click", () => this.addGroupListener());
               tab.addEventListener("change", event => this.changePermissionListener(event, group));
-              Array.from(tab.querySelectorAll("a[data-subcategory]")).map(element => element.addEventListener("click", event => this.subcategoryListener(event, group)));
+              tab.addEventListener("click", event => this.clickListener(event, group));
           }
           // TODO: Select this tab.
           return tab;
@@ -511,9 +517,8 @@
           else {
               group.permissions.delete(permission);
           }
-          console.log(permission);
       }
-      deleteGroupListener(_, group) {
+      deleteGroupUI(group) {
           this._ui.alert("Are you sure?", [
               {
                   text: "Yes",
@@ -534,7 +539,7 @@
               }
           });
       }
-      renameGroupListener(_, group) {
+      renameGroupUI(group) {
           this._ui.prompt("What would you like to rename this group to?", newName => {
               if (newName) {
                   const result = group.rename(newName);
@@ -547,7 +552,7 @@
               }
           });
       }
-      addGroupListener() {
+      addGroupUI() {
           this._ui.prompt("What would you like to name this new group?", name => {
               if (name) {
                   const result = this.management.groups.add({
@@ -561,6 +566,31 @@
                   }
               }
           });
+      }
+      clickListener(event, group) {
+          const element = event.target;
+          if (element.tagName === "A") {
+              const action = element.getAttribute("data-action");
+              if (action) {
+                  switch (action) {
+                      case "rename":
+                          this.renameGroupUI(group);
+                          break;
+                      case "create":
+                          this.addGroupUI();
+                          break;
+                      case "delete":
+                          this.deleteGroupUI(group);
+                          break;
+                  }
+              }
+              else {
+                  const subcategory = element.getAttribute("data-subcategory");
+                  if (subcategory) {
+                      this.subcategoryListener(event, group);
+                  }
+              }
+          }
       }
       subcategoryListener(event, group) {
           const tab = group.tab;
@@ -706,7 +736,8 @@
       }
   ];
 
-  bot.MessageBot.registerExtension("dapersonmgn/groupManagement", ex => {
+  const EXTENSION_ID = "dapersonmgn/groupManagementBeta";
+  bot.MessageBot.registerExtension(EXTENSION_ID, ex => {
       const GM = new GroupManagement(ex);
       for (const permission of BlockheadPermissions) {
           const { id, command, callback, ignore } = permission;
@@ -715,12 +746,11 @@
               command,
               callback,
               ignore,
-              extension: "dapersonmgn/groupManagement",
+              extension: EXTENSION_ID,
               category: permission.display.category,
               name: permission.display.name
           });
       }
-      console.log(GM.groups.get("Administrator"));
       if (!GM.groups.get("Administrator")) {
           GM.groups.add({
               name: "Administrator",

@@ -17,7 +17,9 @@ export interface ExtensionPermission {
   }
 };
 
-MessageBot.registerExtension("dapersonmgn/groupManagement", ex => {
+const EXTENSION_ID = "dapersonmgn/groupManagementBeta";
+
+MessageBot.registerExtension(EXTENSION_ID, ex => {
 
   const GM = new GroupManagement(ex);
   for (const permission of BlockheadPermissions) {
@@ -27,13 +29,11 @@ MessageBot.registerExtension("dapersonmgn/groupManagement", ex => {
       command,
       callback,
       ignore,
-      extension: "dapersonmgn/groupManagement",
+      extension: EXTENSION_ID,
       category: permission.display.category,
       name: permission.display.name
     });
   }
-
-  console.log(GM.groups.get("Administrator"));
 
   if (!GM.groups.get("Administrator")) {
     GM.groups.add({

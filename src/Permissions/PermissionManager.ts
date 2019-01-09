@@ -25,8 +25,8 @@ export class PermissionManager {
         command: permissionData.command,
         callback: permissionData.callback
       });
-      this.management.ui.addPermission(permission);
       this._permissions.set(permission.id, permission);
+      this.management.ui.addPermission(permission);
       return true;
     }
     return false;

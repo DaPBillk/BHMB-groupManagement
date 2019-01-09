@@ -11,10 +11,6 @@ export class GroupManager {
 
   constructor (management : GroupManagement) {
     this.management = management;
-
-    // console.log(this.management.extension.storage.get(SAVE_KEY, []).map((data) => {
-    //   return [data];
-    // }));
     
     this._groups = new Map(this.management.extension.storage.get(SAVE_KEY, []).map((groupData : GroupSaveData) => [groupData.id, new Group(groupData, this)] as [number, Group]));
   }

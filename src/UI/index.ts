@@ -42,22 +42,31 @@ class UI {
           //Subcategory doesn't exist, create it.
           const listEl = tab.querySelector(`ul[data-category="${parentCategory}"]`) as HTMLUListElement;
           listEl.innerHTML += `<li><a href="#" class="is-unselectable" data-subcategory="${subCategory}">${subCategory}</a></li>`;
-          
+          (listEl.querySelector(`a[data-subcategory="${subCategory}"]`) as HTMLLinkElement).addEventListener("click",  event => this.subcategoryListener(event, group));
+          (tab.querySelectorAll(".box")[1] as HTMLDivElement).innerHTML += `<div data-subcategory="${subCategory}" class="is-invisible" style="display: none;"><div class="columns" style="padding-top: 2.5%;"><div class="column"></div><div class="column"></div><div class="column"></div></div></div>`;
       }
       //Add the permission to it's tab.
+      
+      const columns = Array.from(tab.querySelectorAll(`div[data-subcategory="${subCategory}"] .column`)) as HTMLDivElement[];
+      const col = columns.sort((colA, colB) => colA.querySelectorAll("input[data-permission]").length - colB.querySelectorAll("input[data-permission]").length)[0];
+      col.innerHTML += permissionHTML
+        .replace("{ID}", permission.id)
+        .replace("{PERMISSION}", permission.name)
+        .replace("{ALLOWED}", group.permissions.has(permission) ? "checked " : "")
+        .replace("{DISABLED}", group.permissions.disabled.has(permission.id) ? "disabled" : "");
+
+      (tab.querySelector(`a[data-subcategory="${subCategory}"]`) as HTMLLinkElement).click();
     }
   }
 
   addGroup (group : Group) : HTMLDivElement | undefined {
     let tab : HTMLDivElement | undefined;
-    console.log(123);
     if (this._ui) {
-      console.log(group);
       tab = this._ui.addTab(group.name, this.namespace);
       tab.innerHTML = groupTabHTML.replace("{TITLE}", group.name);
 
       const permissions = MessageBot.extensions.map(extension => group.manager.management.permissions.getExtensionPermissions(extension)).reduce((pSetA, pSetB) => pSetA.concat(pSetB));
-      
+
       const categories : {
         [category : string] : {
           [subcategory : string] : Permission[]
@@ -113,11 +122,8 @@ class UI {
         categoryHTML += `</ul>`;
       }
       (tab.querySelector(".menu") as HTMLElement).innerHTML = categoryHTML;
-      (tab.querySelector('a[data-action="rename"]') as HTMLElement).addEventListener("click", event => this.renameGroupListener(event, group));
-      (tab.querySelector('a[data-action="delete"]') as HTMLElement).addEventListener("click", event => this.deleteGroupListener(event, group));
-      (tab.querySelector('a[data-action="create"]') as HTMLElement).addEventListener("click", () => this.addGroupListener());
       tab.addEventListener("change", event => this.changePermissionListener(event, group));
-      Array.from((tab.querySelectorAll("a[data-subcategory]") as NodeListOf<HTMLElement>)).map(element => element.addEventListener("click", event => this.subcategoryListener(event, group)));
+      tab.addEventListener("click", event => this.clickListener(event, group));
 
     }
 
@@ -146,10 +152,9 @@ class UI {
     } else {
       group.permissions.delete(permission);
     }
-    console.log(permission);
   }
 
-  deleteGroupListener (_ : MouseEvent, group : Group) {
+  deleteGroupUI (group : Group) {
     this._ui.alert("Are you sure?", [
       {
         text: "Yes",
@@ -170,7 +175,7 @@ class UI {
     });
   }
 
-  renameGroupListener (_ : MouseEvent, group : Group) {
+  renameGroupUI (group : Group) {
     this._ui.prompt("What would you like to rename this group to?", newName => {
       if (newName) {
         const result = group.rename(newName);
@@ -183,7 +188,7 @@ class UI {
     });
   }
 
-  addGroupListener () {
+  addGroupUI () {
     this._ui.prompt("What would you like to name this new group?", name => {
       if (name) {
         const result = this.management.groups.add({
@@ -196,6 +201,31 @@ class UI {
         }
       }
     });
+  }
+
+  clickListener (event : MouseEvent, group : Group) {
+    const element = event.target as HTMLLinkElement;
+    if (element.tagName === "A") {
+      const action = element.getAttribute("data-action");
+      if (action) {
+        switch (action) {
+          case "rename" :
+            this.renameGroupUI(group);
+          break;
+          case "create":
+            this.addGroupUI();
+          break;
+          case "delete":
+            this.deleteGroupUI(group);
+          break;
+        }
+      } else {
+        const subcategory = element.getAttribute("data-subcategory");
+        if(subcategory) {
+          this.subcategoryListener(event, group);
+        }
+      }
+    }
   }
 
   subcategoryListener (event : MouseEvent, group : Group) {
