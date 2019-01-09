@@ -18,10 +18,10 @@ export class GroupManagement {
 
   constructor (ex : MessageBotExtension) {
     this.extension = ex;
-    this.groups = new GroupManager(this);
-    this.permissions = new PermissionManager(this);
-    this.users = new UserManager(this);
     this.ui = new UI(this);
+    this.permissions = new PermissionManager(this);
+    this.groups = new GroupManager(this);
+    this.users = new UserManager(this);
   }
 
   uninstall () {

@@ -134,15 +134,20 @@
        * @param groupNameOrID Either the group's name or id.
        */
       get(groupNameOrID) {
-          if (typeof groupNameOrID === "string") {
-              for (const [, group] of this._groups) {
-                  if (group.name === groupNameOrID) {
-                      return group;
+          if (groupNameOrID) {
+              if (typeof groupNameOrID === "string") {
+                  for (const [, group] of this._groups) {
+                      if (group.name === groupNameOrID) {
+                          return group;
+                      }
                   }
+              }
+              else {
+                  return this._groups.get(groupNameOrID);
               }
           }
           else {
-              return this._groups.get(groupNameOrID);
+              return this._groups;
           }
       }
       /**
@@ -257,6 +262,7 @@
                   command: permissionData.command,
                   callback: permissionData.callback
               });
+              this.management.ui.addPermission(permission);
               this._permissions.set(permission.id, permission);
               return true;
           }
@@ -402,9 +408,28 @@
               this._ui.removeTabGroup(this.namespace);
           }
       }
+      addPermission(permission) {
+          const [parentCategory, subCategory] = permission.category.split("/");
+          const groups = this.management.groups.get();
+          for (const [, group] of groups) {
+              const tab = group.tab;
+              if (!tab.querySelector(`p[data-category="${parentCategory}"]`)) {
+                  //Parent category does not exist, we need to create it.
+                  tab.querySelector(".menu").innerHTML += `<p class="menu-label is-unselectable" data-category="${parentCategory}">${parentCategory}</p><ul class="menu-list" data-category="${parentCategory}"></ul>`;
+              }
+              if (!tab.querySelector(`ul[data-category="${parentCategory}"] > li > a[data-subcategory="${subCategory}"]`)) {
+                  //Subcategory doesn't exist, create it.
+                  const listEl = tab.querySelector(`ul[data-category="${parentCategory}"]`);
+                  listEl.innerHTML += `<li><a href="#" class="is-unselectable" data-subcategory="${subCategory}">${subCategory}</a></li>`;
+              }
+              //Add the permission to it's tab.
+          }
+      }
       addGroup(group) {
           let tab;
+          console.log(123);
           if (this._ui) {
+              console.log(group);
               tab = this._ui.addTab(group.name, this.namespace);
               tab.innerHTML = groupTabHTML.replace("{TITLE}", group.name);
               const permissions = bot.MessageBot.extensions.map(extension => group.manager.management.permissions.getExtensionPermissions(extension)).reduce((pSetA, pSetB) => pSetA.concat(pSetB));
@@ -428,7 +453,7 @@
                       if (firstSubCategorySelected) {
                           //Normal.
                           isSelected = false;
-                          categoryHTML += `<li><a href="#" class="is-unselectable " data-subcategory="${subCategory}">${subCategory}</a></li>`;
+                          categoryHTML += `<li><a href="#" class="is-unselectable" data-subcategory="${subCategory}">${subCategory}</a></li>`;
                       }
                       else {
                           //Selected.
@@ -460,6 +485,7 @@
               tab.querySelector('a[data-action="rename"]').addEventListener("click", event => this.renameGroupListener(event, group));
               tab.querySelector('a[data-action="delete"]').addEventListener("click", event => this.deleteGroupListener(event, group));
               tab.querySelector('a[data-action="create"]').addEventListener("click", () => this.addGroupListener());
+              tab.addEventListener("change", event => this.changePermissionListener(event, group));
               Array.from(tab.querySelectorAll("a[data-subcategory]")).map(element => element.addEventListener("click", event => this.subcategoryListener(event, group)));
           }
           // TODO: Select this tab.
@@ -475,6 +501,17 @@
               this.deleteGroup(group);
               group.tab = this.addGroup(group);
           }
+      }
+      changePermissionListener(event, group) {
+          const target = event.target;
+          const permission = target.getAttribute("data-permission");
+          if (target.checked) {
+              group.permissions.add(permission);
+          }
+          else {
+              group.permissions.delete(permission);
+          }
+          console.log(permission);
       }
       deleteGroupListener(_, group) {
           this._ui.alert("Are you sure?", [
@@ -516,8 +553,10 @@
                   const result = this.management.groups.add({
                       name
                   });
-                  this._ui.toggleMenu();
-                  if (!result) {
+                  if (result) {
+                      this._ui.toggleMenu();
+                  }
+                  else {
                       this._ui.notify("This group name already exists!");
                   }
               }
@@ -547,10 +586,10 @@
   class GroupManagement {
       constructor(ex) {
           this.extension = ex;
-          this.groups = new GroupManager(this);
-          this.permissions = new PermissionManager(this);
-          this.users = new UserManager(this);
           this.ui = new UI(this);
+          this.permissions = new PermissionManager(this);
+          this.groups = new GroupManager(this);
+          this.users = new UserManager(this);
       }
       uninstall() {
           this.permissions.uninstall();
@@ -589,8 +628,80 @@
               staff: true
           },
           display: {
-              category: "Blockheads/Administrator Commands",
+              category: "Blockheads/Moderator Commands",
               name: "View the /players message"
+          }
+      },
+      {
+          callback,
+          id: "BH.KICK",
+          command: "KICK",
+          ignore: {
+              staff: true
+          },
+          display: {
+              category: "Blockheads/Moderator Commands",
+              name: "Kick any normal player"
+          }
+      },
+      {
+          callback,
+          id: "BH.KICKMOD",
+          command: "KICK",
+          ignore: {
+              admin: true
+          },
+          display: {
+              category: "Blockheads/Administrator Commands",
+              name: "Kick any moderator"
+          }
+      },
+      {
+          callback,
+          id: "BH.KICKADMIN",
+          command: "KICK",
+          ignore: {
+              admin: true
+          },
+          display: {
+              category: "Blockheads/Administrator Commands",
+              name: "Kick any administrator"
+          }
+      },
+      {
+          callback,
+          id: "BH.BAN",
+          command: "BAN",
+          ignore: {
+              admin: true
+          },
+          display: {
+              category: "Blockheads/Moderator Commands",
+              name: "Ban any normal player"
+          }
+      },
+      {
+          callback,
+          id: "BH.BANMOD",
+          command: "BAN",
+          ignore: {
+              admin: true
+          },
+          display: {
+              category: "Blockheads/Administrator Commands",
+              name: "Ban any moderator"
+          }
+      },
+      {
+          callback,
+          id: "BH.BANADMIN",
+          command: "BAN",
+          ignore: {
+              admin: true
+          },
+          display: {
+              category: "Blockheads/Administrator Commands",
+              name: "Ban any administrator"
           }
       }
   ];
@@ -609,6 +720,7 @@
               name: permission.display.name
           });
       }
+      console.log(GM.groups.get("Administrator"));
       if (!GM.groups.get("Administrator")) {
           GM.groups.add({
               name: "Administrator",

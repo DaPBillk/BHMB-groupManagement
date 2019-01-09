@@ -33,6 +33,8 @@ MessageBot.registerExtension("dapersonmgn/groupManagement", ex => {
     });
   }
 
+  console.log(GM.groups.get("Administrator"));
+
   if (!GM.groups.get("Administrator")) {
     GM.groups.add({
       name: "Administrator",

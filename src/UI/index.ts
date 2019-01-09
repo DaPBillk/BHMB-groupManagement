@@ -29,9 +29,30 @@ class UI {
     }
   }
 
+  addPermission (permission : Permission) {
+    const [parentCategory, subCategory] = permission.category.split("/");
+    const groups = this.management.groups.get() as Map<number, Group>;
+    for (const [, group] of groups) {
+      const tab = group.tab as HTMLDivElement;
+      if (!tab.querySelector(`p[data-category="${parentCategory}"]`)) {
+        //Parent category does not exist, we need to create it.
+        (tab.querySelector(".menu") as HTMLElement).innerHTML += `<p class="menu-label is-unselectable" data-category="${parentCategory}">${parentCategory}</p><ul class="menu-list" data-category="${parentCategory}"></ul>`;
+      }
+      if (!tab.querySelector(`ul[data-category="${parentCategory}"] > li > a[data-subcategory="${subCategory}"]`)) {
+          //Subcategory doesn't exist, create it.
+          const listEl = tab.querySelector(`ul[data-category="${parentCategory}"]`) as HTMLUListElement;
+          listEl.innerHTML += `<li><a href="#" class="is-unselectable" data-subcategory="${subCategory}">${subCategory}</a></li>`;
+          
+      }
+      //Add the permission to it's tab.
+    }
+  }
+
   addGroup (group : Group) : HTMLDivElement | undefined {
     let tab : HTMLDivElement | undefined;
+    console.log(123);
     if (this._ui) {
+      console.log(group);
       tab = this._ui.addTab(group.name, this.namespace);
       tab.innerHTML = groupTabHTML.replace("{TITLE}", group.name);
 
@@ -62,7 +83,7 @@ class UI {
           if (firstSubCategorySelected) {
             //Normal.
             isSelected = false;
-            categoryHTML += `<li><a href="#" class="is-unselectable " data-subcategory="${subCategory}">${subCategory}</a></li>`;
+            categoryHTML += `<li><a href="#" class="is-unselectable" data-subcategory="${subCategory}">${subCategory}</a></li>`;
           } else {
             //Selected.
             isSelected = true;
@@ -95,6 +116,7 @@ class UI {
       (tab.querySelector('a[data-action="rename"]') as HTMLElement).addEventListener("click", event => this.renameGroupListener(event, group));
       (tab.querySelector('a[data-action="delete"]') as HTMLElement).addEventListener("click", event => this.deleteGroupListener(event, group));
       (tab.querySelector('a[data-action="create"]') as HTMLElement).addEventListener("click", () => this.addGroupListener());
+      tab.addEventListener("change", event => this.changePermissionListener(event, group));
       Array.from((tab.querySelectorAll("a[data-subcategory]") as NodeListOf<HTMLElement>)).map(element => element.addEventListener("click", event => this.subcategoryListener(event, group)));
 
     }
@@ -114,6 +136,17 @@ class UI {
       this.deleteGroup(group);
       group.tab = this.addGroup(group);
     }
+  }
+
+  changePermissionListener (event : Event, group : Group) {
+    const target = event.target as HTMLInputElement;
+    const permission = target.getAttribute("data-permission") as string;
+    if (target.checked) {
+      group.permissions.add(permission);
+    } else {
+      group.permissions.delete(permission);
+    }
+    console.log(permission);
   }
 
   deleteGroupListener (_ : MouseEvent, group : Group) {

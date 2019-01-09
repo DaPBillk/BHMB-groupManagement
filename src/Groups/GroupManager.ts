@@ -50,15 +50,19 @@ export class GroupManager {
    * Retrieve a group.
    * @param groupNameOrID Either the group's name or id.
    */
-  get (groupNameOrID : string|number) : Group|undefined {
-    if (typeof groupNameOrID === "string") {
-      for (const [, group] of this._groups) {
-        if (group.name === groupNameOrID) {
-          return group;
+  get (groupNameOrID? : string|number) : Group|undefined|Map<number, Group> {
+    if (groupNameOrID) {
+      if (typeof groupNameOrID === "string") {
+        for (const [, group] of this._groups) {
+          if (group.name === groupNameOrID) {
+            return group;
+          }
         }
+      } else {
+        return this._groups.get(groupNameOrID);
       }
     } else {
-      return this._groups.get(groupNameOrID);
+      return this._groups;
     }
   }
 
@@ -86,9 +90,9 @@ export class GroupManager {
     let group;
 
     if (typeof groupResolvable === "string") {
-      group = this.get(groupResolvable);
+      group = this.get(groupResolvable) as Group|undefined;
     } else if (typeof groupResolvable === "number") {
-      group = this._groups.get(groupResolvable);
+      group = this._groups.get(groupResolvable) as Group|undefined;
     } else {
       group = groupResolvable;
     }
