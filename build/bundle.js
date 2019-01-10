@@ -252,12 +252,12 @@
           if (this.command.toLocaleUpperCase() === command.toLocaleUpperCase().slice(1)) {
               if (user.permissions.has(this.id)) {
                   if (this.ignore) {
-                      if (!(this.ignore.staff && player.isStaff) && !(this.ignore.admin && player.isAdmin) && !(this.ignore.mod && player.isMod)) {
-                          this.callback(player, args);
+                      if (!(this.ignore.staff && player.isStaff) && !(this.ignore.admin && player.isAdmin) && !(this.ignore.mod && player.isMod) && !(this.ignore.owner && player.isOwner)) {
+                          this.callback(player, args, this.id);
                       }
                   }
                   else {
-                      this.callback(player, args);
+                      this.callback(player, args, this.id);
                   }
               }
           }
@@ -418,7 +418,7 @@
 
   var groupTabHTML = "<div class=\"container\">\r\n    <div class=\"box\" style=\"min-width: 35%; max-width: 35%; float: left; margin-top: 1%;\">\r\n      <aside class=\"menu\"></aside>\r\n    </div>\r\n    <div class=\"box\" style=\"min-width: 63%; max-width: 63%; float: right; margin-top: 1%;\">\r\n      <label>\r\n        <span class=\"title\">{TITLE}</span>\r\n      </label>\r\n      <label>\r\n        <span class=\"subtitle\" style=\"padding-left: 1%;\">\r\n          <a href=\"#\" data-action=\"rename\">Rename</a> - <a href=\"#\" data-action=\"delete\">Delete</a>\r\n        </span>\r\n        <span class=\"subtitle is-pulled-right\">\r\n          <a href=\"#\" data-action=\"create\">New Group</a>\r\n        </span>\r\n      </label>\r\n    </div>\r\n  </div>\r\n  ";
 
-  var permissionHTML = "<p class=\"control\">\r\n  <label class=\"checkbox\">\r\n    <input type=\"checkbox\" data-permission=\"{ID}\" {ALLOWED}{DISABLED}>\r\n    {PERMISSION}\r\n  </label>\r\n</p>";
+  var permissionHTML = "<p class=\"control\" style=\"padding-top: 2.5%;\">\r\n  <label class=\"checkbox\">\r\n    <input type=\"checkbox\" data-permission=\"{ID}\" {ALLOWED}{DISABLED}>\r\n    {PERMISSION}\r\n  </label>\r\n</p>";
 
   class UI {
       constructor(management) {
@@ -448,10 +448,10 @@
                   const listEl = tab.querySelector(`ul[data-category="${parentCategory}"]`);
                   listEl.innerHTML += `<li><a href="#" class="is-unselectable" data-subcategory="${subCategory}">${subCategory}</a></li>`;
                   listEl.querySelector(`a[data-subcategory="${subCategory}"]`).addEventListener("click", event => this.subcategoryListener(event, group));
-                  tab.querySelectorAll(".box")[1].innerHTML += `<div data-subcategory="${subCategory}" class="is-invisible" style="display: none;"><div class="columns" style="padding-top: 2.5%;"><div class="column"></div><div class="column"></div><div class="column"></div></div></div>`;
+                  tab.querySelectorAll(".box")[1].innerHTML += `<div data-subcategory="${subCategory}" data-category="${parentCategory}" class="is-invisible" style="display: none;"><div class="columns" style="padding-top: 2.5%;"><div class="column"></div><div class="column"></div><div class="column"></div></div></div>`;
               }
               //Add the permission to it's tab.
-              const columns = Array.from(tab.querySelectorAll(`div[data-subcategory="${subCategory}"] .column`));
+              const columns = Array.from(tab.querySelectorAll(`div[data-subcategory="${subCategory}"][data-category="${parentCategory}"] .column`));
               const col = columns.sort((colA, colB) => colA.querySelectorAll("input[data-permission]").length - colB.querySelectorAll("input[data-permission]").length)[0];
               col.innerHTML += permissionHTML
                   .replace("{ID}", permission.id)
@@ -465,7 +465,11 @@
           let tab;
           if (this._ui) {
               tab = this._ui.addTab(group.name, this.namespace);
-              tab.innerHTML = groupTabHTML.replace("{TITLE}", group.name);
+              tab.innerHTML = groupTabHTML;
+              tab.querySelector(".title").innerText = group.name;
+              if (group.managed) {
+                  tab.querySelectorAll(".subtitle")[0].innerHTML = "";
+              }
               const permissions = bot.MessageBot.extensions.map(extension => group.manager.management.permissions.getExtensionPermissions(extension)).reduce((pSetA, pSetB) => pSetA.concat(pSetB));
               const categories = {};
               for (const permission of permissions) {
@@ -510,7 +514,7 @@
                               colNum++;
                           }
                       }
-                      let subCategoryTab = `<div data-subcategory="${subCategory}" ${isSelected ? "" : 'class="is-invisible" style="display: none;"'}><div class="columns" style="padding-top: 2.5%;"><div class="column">${columns[0].join("")}</div><div class="column">${columns[1].join("")}</div><div class="column">${columns[2].join("")}</div></div></div>`;
+                      let subCategoryTab = `<div data-subcategory="${subCategory}" data-category="${parentCategory}" ${isSelected ? "" : 'class="is-invisible" style="display: none;"'}><div class="columns" style="padding-top: 2.5%;"><div class="column">${columns[0].join("")}</div><div class="column">${columns[1].join("")}</div><div class="column">${columns[2].join("")}</div></div></div>`;
                       tab.querySelectorAll(".box")[1].innerHTML += subCategoryTab;
                   }
                   categoryHTML += `</ul>`;
@@ -620,13 +624,14 @@
       subcategoryListener(event, group) {
           const tab = group.tab;
           const wantedSubCategory = event.target.getAttribute("data-subcategory");
-          const tabToShow = tab.querySelector(`div[data-subcategory="${wantedSubCategory}"]`);
+          const parentCategory = event.target.parentElement.parentElement.getAttribute("data-category");
+          const tabToShow = tab.querySelector(`div[data-subcategory="${wantedSubCategory}"][data-category="${parentCategory}"]`);
           if (tabToShow.classList.contains("is-invisible")) {
-              const oldSelectedCategory = event.target.parentElement.parentElement.querySelector("a[data-selected]");
+              const oldSelectedCategory = event.target.parentElement.parentElement.parentElement.querySelector("a[data-selected]");
               if (oldSelectedCategory) {
                   oldSelectedCategory.setAttribute("style", "");
                   oldSelectedCategory.removeAttribute("data-selected");
-                  const tabToHide = tab.querySelector(`div[data-subcategory="${oldSelectedCategory.getAttribute("data-subcategory")}"]`);
+                  const tabToHide = tab.querySelector(`div[data-subcategory="${oldSelectedCategory.getAttribute("data-subcategory")}"][data-category="${oldSelectedCategory.parentElement.parentElement.getAttribute("data-category")}"]`);
                   tabToHide.classList.add("is-invisible");
                   tabToHide.setAttribute("style", "display: none");
               }
@@ -662,7 +667,7 @@
       }
   }
 
-  var callback = () => {
+  var callback = (player, args, id) => {
   };
 
   const BlockheadPermissions = [
@@ -704,7 +709,7 @@
       },
       {
           callback,
-          id: "BH.KICKMOD",
+          id: "BH.KICK_MOD",
           command: "KICK",
           ignore: {
               admin: true
@@ -716,7 +721,7 @@
       },
       {
           callback,
-          id: "BH.KICKADMIN",
+          id: "BH.KICK_ADMIN",
           command: "KICK",
           ignore: {
               admin: true
@@ -740,7 +745,7 @@
       },
       {
           callback,
-          id: "BH.BANMOD",
+          id: "BH.BAN_MOD",
           command: "BAN",
           ignore: {
               admin: true
@@ -752,7 +757,7 @@
       },
       {
           callback,
-          id: "BH.BANADMIN",
+          id: "BH.BAN_ADMIN",
           command: "BAN",
           ignore: {
               admin: true
@@ -761,6 +766,321 @@
               category: "Blockheads/Administrator Commands",
               name: "Ban any administrator"
           }
+      },
+      {
+          callback,
+          id: "BH.BAN_NO_DEVICE",
+          command: "BAN-NO-DEVICE",
+          ignore: {
+              staff: true
+          },
+          display: {
+              category: "Blockheads/Moderator Commands",
+              name: "Ban any normal player using /ban-no-device"
+          }
+      },
+      {
+          callback,
+          id: "BH.BAN_NO_DEVICE_MOD",
+          command: "BAN-NO-DEVICE",
+          ignore: {
+              admin: true
+          },
+          display: {
+              category: "Blockheads/Administrator Commands",
+              name: "Ban any moderator using /ban-no-device"
+          }
+      },
+      {
+          callback,
+          id: "BH.BAN_NO_DEVICE_ADMIN",
+          command: "BAN-NO-DEVICE",
+          ignore: {
+              admin: true
+          },
+          display: {
+              category: "Blockheads/Administrator Commands",
+              name: "Ban any administrator using /ban-no-device"
+          }
+      },
+      {
+          callback,
+          id: "BH.UNBAN",
+          command: "UNBAN",
+          ignore: {
+              staff: true
+          },
+          display: {
+              category: "Blockheads/Moderator Commands",
+              name: "Unban any player"
+          }
+      },
+      {
+          callback,
+          id: "BH.WHITELIST",
+          command: "WHITELIST",
+          ignore: {
+              staff: true
+          },
+          display: {
+              category: "Blockheads/List Commands",
+              name: "Whitelist any player"
+          }
+      },
+      {
+          callback,
+          id: "BH.UNWHITELIST",
+          command: "UNWHITELIST",
+          ignore: {
+              staff: true
+          },
+          display: {
+              category: "Blockheads/List Commands",
+              name: "Unwhitelist any player"
+          }
+      },
+      {
+          callback,
+          id: "BH.LIST_BLACKLIST",
+          command: "LIST-BLACKLIST",
+          ignore: {
+              staff: true
+          },
+          display: {
+              category: "Blockheads/List Commands",
+              name: "List the blacklist"
+          }
+      },
+      {
+          callback,
+          id: "BH.LIST_WHITELIST",
+          command: "LIST-WHITELIST",
+          ignore: {
+              staff: true
+          },
+          display: {
+              category: "Blockheads/List Commands",
+              name: "List the whitelist"
+          }
+      },
+      {
+          callback,
+          id: "BH.LIST_ADMINLIST",
+          command: "LIST-ADMINLIST",
+          ignore: {
+              admin: true
+          },
+          display: {
+              category: "Blockheads/List Commands",
+              name: "List the adminlist"
+          }
+      },
+      {
+          callback,
+          id: "BH.LIST_MODLIST",
+          command: "LIST-MODLIST",
+          ignore: {
+              admin: true
+          },
+          display: {
+              category: "Blockheads/List Commands",
+              name: "List the modlist"
+          }
+      },
+      {
+          callback,
+          id: "BH.STOP",
+          command: "STOP",
+          ignore: {
+              admin: true
+          },
+          display: {
+              category: "Blockheads/Administrator Commands",
+              name: "Stop the server"
+          }
+      },
+      {
+          callback,
+          id: "BH.PVPON",
+          command: "PVP-ON",
+          ignore: {
+              admin: true
+          },
+          display: {
+              category: "Blockheads/Administrator Commands",
+              name: "Turn PVP on"
+          }
+      },
+      {
+          callback,
+          id: "BH.PVPOFF",
+          command: "PVP-OFF",
+          ignore: {
+              admin: true
+          },
+          display: {
+              category: "Blockheads/Administrator Commands",
+              name: "Turn PVP off"
+          }
+      },
+      {
+          callback,
+          id: "BH.LOADLISTS",
+          command: "LOAD-LISTS",
+          ignore: {
+              admin: true
+          },
+          display: {
+              category: "Blockheads/List Commands",
+              name: "Reload the lists"
+          }
+      },
+      {
+          callback,
+          id: "BH.MOD",
+          command: "MOD",
+          ignore: {
+              admin: true
+          },
+          display: {
+              category: "Blockheads/Administrator Commands",
+              name: "Add others to the modlist"
+          }
+      },
+      {
+          callback,
+          id: "BH.UNMOD",
+          command: "UNMOD",
+          ignore: {
+              admin: true
+          },
+          display: {
+              category: "Blockheads/Administrator Commands",
+              name: "Remove others from the modlist"
+          }
+      },
+      {
+          callback,
+          id: "BH.ADMIN",
+          command: "ADMIN",
+          ignore: {
+              admin: true
+          },
+          display: {
+              category: "Blockheads/Administrator Commands",
+              name: "Add others to the adminlist"
+          }
+      },
+      {
+          callback,
+          id: "BH.UNADMIN",
+          command: "UNADMIN",
+          ignore: {
+              admin: true
+          },
+          display: {
+              category: "Blockheads/Administrator Commands",
+              name: "Remove others from the adminlist"
+          }
+      },
+      {
+          callback,
+          id: "BH.CLEARBLACKLIST",
+          command: "CLEAR-BLACKLIST",
+          ignore: {
+              admin: true
+          },
+          display: {
+              category: "Blockheads/List Commands",
+              name: "Clear the blacklist"
+          }
+      },
+      {
+          callback,
+          id: "BH.CLEARWHITELIST",
+          command: "CLEAR-WHITELIST",
+          ignore: {
+              admin: true
+          },
+          display: {
+              category: "Blockheads/List Commands",
+              name: "Clear the whitelist"
+          }
+      },
+      {
+          callback,
+          id: "BH.CLEARMODLIST",
+          command: "CLEAR-MODLIST",
+          ignore: {
+              admin: true
+          },
+          display: {
+              category: "Blockheads/List Commands",
+              name: "Clear the modlist"
+          }
+      },
+      {
+          callback,
+          id: "BH.CLEARADMINLIST",
+          command: "CLEAR-ADMINLIST",
+          ignore: {
+              admin: true
+          },
+          display: {
+              category: "Blockheads/List Commands",
+              name: "Clear the adminlist"
+          }
+      },
+      {
+          callback,
+          id: "BH.SETPASSWORD",
+          command: "SET-PASSWORD",
+          ignore: {
+              owner: true
+          },
+          display: {
+              category: "Blockheads/World Commands",
+              name: "Set the world's password."
+          }
+      },
+      {
+          callback,
+          id: "BH.SETPRIVACY",
+          command: "SET-PRIVACY",
+          ignore: {
+              owner: true
+          },
+          display: {
+              category: "Blockheads/World Commands",
+              name: "Set the privacy of the world"
+          }
+      },
+      {
+          callback,
+          id: "BH.REMOVEPASSWORD",
+          command: "REMOVE-PASSWORD",
+          ignore: {
+              owner: true
+          },
+          display: {
+              category: "Blockheads/World Commands",
+              name: "Remove the world's password"
+          }
+      }
+  ];
+
+  var callback$1 = (player, args, id) => {
+  };
+
+  const GroupManagementPermissions = [
+      {
+          callback: callback$1,
+          id: "GM.HELP",
+          command: "GM-HELP",
+          display: {
+              category: "Group Management/General Commands",
+              name: "View the /GM-help message"
+          },
       }
   ];
 
@@ -779,12 +1099,24 @@
               name: permission.display.name
           });
       }
+      for (const permission of GroupManagementPermissions) {
+          const { id, command, callback, ignore } = permission;
+          GM.permissions.add({
+              id,
+              command,
+              callback,
+              ignore,
+              extension: EXTENSION_ID,
+              category: permission.display.category,
+              name: permission.display.name
+          });
+      }
       if (!GM.groups.get("Administrator")) {
           GM.groups.add({
               name: "Administrator",
               permissions: {
-                  allowed: [],
-                  disabled: []
+                  allowed: ["BH.HELP", "BH.PLAYERS", "BH.KICK_MOD", "BH.KICK_ADMIN", "BH.KICK", "BH.BAN_MOD", "BH.BAN_ADMIN", "BH.BAN", "BH.BAN_NO_DEVICE_MOD", "BH.BAN_NO_DEVICE_ADMIN", "BH.BAN_NO_DEVICE", "BH.UNBAN", "BH.WHITELIST", "BH.UNWHITELIST", "BH.LIST_MODLIST", "BH.LIST_BLACKLIST", "BH.LIST_WHITELIST", "BH.LIST_ADMINLIST", "BH.LOADLISTS", "BH.STOP", "BH.PVPON", "BH.PVPOFF", "BH.MOD", "BH.UNMOD", "BH.ADMIN", "BH.UNADMIN", "BH.CLEARMODLIST", "BH.CLEARADMINLIST", "BH.CLEARWHITELIST", "BH.CLEARBLACKLIST"],
+                  disabled: ["BH.HELP", "BH.PLAYERS", "BH.KICK_MOD", "BH.KICK_ADMIN", "BH.KICK", "BH.BAN_MOD", "BH.BAN_ADMIN", "BH.BAN", "BH.BAN_NO_DEVICE_MOD", "BH.BAN_NO_DEVICE_ADMIN", "BH.BAN_NO_DEVICE", "BH.UNBAN", "BH.WHITELIST", "BH.UNWHITELIST", "BH.LIST_MODLIST", "BH.LIST_BLACKLIST", "BH.LIST_WHITELIST", "BH.LIST_ADMINLIST", "BH.LOADLISTS", "BH.STOP", "BH.PVPON", "BH.PVPOFF", "BH.MOD", "BH.UNMOD", "BH.ADMIN", "BH.UNADMIN", "BH.CLEARMODLIST", "BH.CLEARADMINLIST", "BH.CLEARWHITELIST", "BH.CLEARBLACKLIST"]
               },
               managed: true
           });
@@ -793,8 +1125,8 @@
           GM.groups.add({
               name: "Moderator",
               permissions: {
-                  allowed: [],
-                  disabled: []
+                  allowed: ["BH.HELP", "BH.PLAYERS", "BH.KICK", "BH.BAN", "BH.BAN_NO_DEVICE", "BH.UNBAN", "BH.WHITELIST", "BH.UNWHITELIST", "BH.LIST_BLACKLIST", "BH.LIST_WHITELIST"],
+                  disabled: ["BH.HELP", "BH.PLAYERS", "BH.KICK", "BH.BAN", "BH.BAN_NO_DEVICE", "BH.UNBAN", "BH.WHITELIST", "BH.UNWHITELIST", "BH.LIST_BLACKLIST", "BH.LIST_WHITELIST"]
               },
               managed: true
           });

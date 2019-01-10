@@ -43,11 +43,11 @@ class UI {
           const listEl = tab.querySelector(`ul[data-category="${parentCategory}"]`) as HTMLUListElement;
           listEl.innerHTML += `<li><a href="#" class="is-unselectable" data-subcategory="${subCategory}">${subCategory}</a></li>`;
           (listEl.querySelector(`a[data-subcategory="${subCategory}"]`) as HTMLLinkElement).addEventListener("click",  event => this.subcategoryListener(event, group));
-          (tab.querySelectorAll(".box")[1] as HTMLDivElement).innerHTML += `<div data-subcategory="${subCategory}" class="is-invisible" style="display: none;"><div class="columns" style="padding-top: 2.5%;"><div class="column"></div><div class="column"></div><div class="column"></div></div></div>`;
+          (tab.querySelectorAll(".box")[1] as HTMLDivElement).innerHTML += `<div data-subcategory="${subCategory}" data-category="${parentCategory}" class="is-invisible" style="display: none;"><div class="columns" style="padding-top: 2.5%;"><div class="column"></div><div class="column"></div><div class="column"></div></div></div>`;
       }
       //Add the permission to it's tab.
       
-      const columns = Array.from(tab.querySelectorAll(`div[data-subcategory="${subCategory}"] .column`)) as HTMLDivElement[];
+      const columns = Array.from(tab.querySelectorAll(`div[data-subcategory="${subCategory}"][data-category="${parentCategory}"] .column`)) as HTMLDivElement[];
       const col = columns.sort((colA, colB) => colA.querySelectorAll("input[data-permission]").length - colB.querySelectorAll("input[data-permission]").length)[0];
       col.innerHTML += permissionHTML
         .replace("{ID}", permission.id)
@@ -63,7 +63,11 @@ class UI {
     let tab : HTMLDivElement | undefined;
     if (this._ui) {
       tab = this._ui.addTab(group.name, this.namespace);
-      tab.innerHTML = groupTabHTML.replace("{TITLE}", group.name);
+      tab.innerHTML = groupTabHTML;
+      (tab.querySelector(".title") as HTMLSpanElement).innerText = group.name;
+      if (group.managed) {
+        tab.querySelectorAll(".subtitle")[0].innerHTML = "";
+      }
 
       const permissions = MessageBot.extensions.map(extension => group.manager.management.permissions.getExtensionPermissions(extension)).reduce((pSetA, pSetB) => pSetA.concat(pSetB));
 
@@ -116,7 +120,7 @@ class UI {
               colNum++;
             }
           }
-          let subCategoryTab = `<div data-subcategory="${subCategory}" ${isSelected ? "" : 'class="is-invisible" style="display: none;"'}><div class="columns" style="padding-top: 2.5%;"><div class="column">${columns[0].join("")}</div><div class="column">${columns[1].join("")}</div><div class="column">${columns[2].join("")}</div></div></div>`;
+          let subCategoryTab = `<div data-subcategory="${subCategory}" data-category="${parentCategory}" ${isSelected ? "" : 'class="is-invisible" style="display: none;"'}><div class="columns" style="padding-top: 2.5%;"><div class="column">${columns[0].join("")}</div><div class="column">${columns[1].join("")}</div><div class="column">${columns[2].join("")}</div></div></div>`;
           (tab.querySelectorAll(".box")[1] as HTMLElement).innerHTML += subCategoryTab;
         }
         categoryHTML += `</ul>`;
@@ -231,13 +235,14 @@ class UI {
   subcategoryListener (event : MouseEvent, group : Group) {
     const tab = group.tab as HTMLDivElement;
     const wantedSubCategory = (event.target as HTMLElement).getAttribute("data-subcategory");
-    const tabToShow = tab.querySelector(`div[data-subcategory="${wantedSubCategory}"]`) as HTMLDivElement;
+    const parentCategory = (((event.target as HTMLElement).parentElement as HTMLElement).parentElement as HTMLElement).getAttribute("data-category");
+    const tabToShow = tab.querySelector(`div[data-subcategory="${wantedSubCategory}"][data-category="${parentCategory}"]`) as HTMLDivElement;
     if (tabToShow.classList.contains("is-invisible")) {
-      const oldSelectedCategory = (((event.target as HTMLElement).parentElement as HTMLElement).parentElement as HTMLElement).querySelector("a[data-selected]") as HTMLElement;
+      const oldSelectedCategory = ((((event.target as HTMLElement).parentElement as HTMLElement).parentElement as HTMLElement).parentElement as HTMLElement).querySelector("a[data-selected]") as HTMLElement;
       if (oldSelectedCategory) {
         oldSelectedCategory.setAttribute("style", "");
         oldSelectedCategory.removeAttribute("data-selected");
-        const tabToHide = tab.querySelector(`div[data-subcategory="${oldSelectedCategory.getAttribute("data-subcategory")}"]`) as HTMLDivElement;
+        const tabToHide = tab.querySelector(`div[data-subcategory="${oldSelectedCategory.getAttribute("data-subcategory")}"][data-category="${((oldSelectedCategory.parentElement as HTMLElement).parentElement as HTMLElement).getAttribute("data-category")}"]`) as HTMLDivElement;
         tabToHide.classList.add("is-invisible");
         tabToHide.setAttribute("style", "display: none");
       }

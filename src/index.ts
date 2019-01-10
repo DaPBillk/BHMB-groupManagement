@@ -1,9 +1,10 @@
 import { MessageBot, Player } from "@bhmb/bot";
 import { GroupManagement } from "./GroupManagement";
 import { BlockheadPermissions } from "./Extensions/Blockheads";
+import { GroupManagementPermissions } from "./Extensions/GroupManagement";
 
 export interface ExtensionPermission {
-  callback: (player: Player, args: string) => void;
+  callback: (player: Player, args: string, id: string) => void;
   id: string;
   command: string;
   display: {
@@ -13,7 +14,8 @@ export interface ExtensionPermission {
   ignore?: {
     admin?: boolean,
     mod?: boolean,
-    staff?: boolean
+    staff?: boolean,
+    owner?: boolean
   }
 };
 
@@ -22,7 +24,21 @@ const EXTENSION_ID = "dapersonmgn/groupManagementBeta";
 MessageBot.registerExtension(EXTENSION_ID, ex => {
 
   const GM = new GroupManagement(ex);
+  
   for (const permission of BlockheadPermissions) {
+    const {id, command, callback, ignore} = permission;
+    GM.permissions.add({
+      id,
+      command,
+      callback,
+      ignore,
+      extension: EXTENSION_ID,
+      category: permission.display.category,
+      name: permission.display.name
+    });
+  }
+
+  for (const permission of GroupManagementPermissions) {
     const {id, command, callback, ignore} = permission;
     GM.permissions.add({
       id,
@@ -39,8 +55,8 @@ MessageBot.registerExtension(EXTENSION_ID, ex => {
     GM.groups.add({
       name: "Administrator",
       permissions: {
-        allowed: [],
-        disabled: []
+        allowed: ["BH.HELP", "BH.PLAYERS", "BH.KICK_MOD", "BH.KICK_ADMIN", "BH.KICK", "BH.BAN_MOD", "BH.BAN_ADMIN", "BH.BAN", "BH.BAN_NO_DEVICE_MOD", "BH.BAN_NO_DEVICE_ADMIN", "BH.BAN_NO_DEVICE", "BH.UNBAN", "BH.WHITELIST", "BH.UNWHITELIST", "BH.LIST_MODLIST", "BH.LIST_BLACKLIST", "BH.LIST_WHITELIST", "BH.LIST_ADMINLIST", "BH.LOADLISTS", "BH.STOP", "BH.PVPON", "BH.PVPOFF", "BH.MOD", "BH.UNMOD", "BH.ADMIN", "BH.UNADMIN", "BH.CLEARMODLIST", "BH.CLEARADMINLIST", "BH.CLEARWHITELIST", "BH.CLEARBLACKLIST"],
+        disabled: ["BH.HELP", "BH.PLAYERS", "BH.KICK_MOD", "BH.KICK_ADMIN", "BH.KICK", "BH.BAN_MOD", "BH.BAN_ADMIN", "BH.BAN", "BH.BAN_NO_DEVICE_MOD", "BH.BAN_NO_DEVICE_ADMIN", "BH.BAN_NO_DEVICE", "BH.UNBAN", "BH.WHITELIST", "BH.UNWHITELIST", "BH.LIST_MODLIST", "BH.LIST_BLACKLIST", "BH.LIST_WHITELIST", "BH.LIST_ADMINLIST", "BH.LOADLISTS", "BH.STOP", "BH.PVPON", "BH.PVPOFF", "BH.MOD", "BH.UNMOD", "BH.ADMIN", "BH.UNADMIN", "BH.CLEARMODLIST", "BH.CLEARADMINLIST", "BH.CLEARWHITELIST", "BH.CLEARBLACKLIST"]
       },
       managed: true
     });
@@ -49,8 +65,8 @@ MessageBot.registerExtension(EXTENSION_ID, ex => {
     GM.groups.add({
       name: "Moderator",
       permissions: {
-        allowed: [],
-        disabled: []
+        allowed: ["BH.HELP", "BH.PLAYERS", "BH.KICK", "BH.BAN", "BH.BAN_NO_DEVICE", "BH.UNBAN", "BH.WHITELIST", "BH.UNWHITELIST", "BH.LIST_BLACKLIST", "BH.LIST_WHITELIST"],
+        disabled: ["BH.HELP", "BH.PLAYERS", "BH.KICK", "BH.BAN", "BH.BAN_NO_DEVICE", "BH.UNBAN", "BH.WHITELIST", "BH.UNWHITELIST", "BH.LIST_BLACKLIST", "BH.LIST_WHITELIST"]
       },
       managed: true
     });
@@ -63,15 +79,6 @@ MessageBot.registerExtension(EXTENSION_ID, ex => {
         disabled: []
       },
       managed: true
-    });
-  }
-  if (!GM.groups.get("Unmanaged")) {
-    GM.groups.add({
-      name: "Unmanaged",
-      permissions: {
-        allowed: [],
-        disabled: []
-      }
     });
   }
 

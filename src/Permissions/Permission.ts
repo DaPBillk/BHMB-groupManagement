@@ -6,7 +6,8 @@ export type PermissionResolvable = string|Permission;
 export interface PermissionIgnoring {
   mod?: boolean,
   admin?: boolean,
-  staff?: boolean
+  staff?: boolean,
+  owner?: boolean
 }
 
 export interface PermissionData {
@@ -15,7 +16,7 @@ export interface PermissionData {
   name: string;
   category: string;
   command: string;
-  callback: (player: Player, args: string) => void,
+  callback: (player: Player, args: string, id : string) => void,
   ignore?: PermissionIgnoring
 };
 
@@ -24,7 +25,7 @@ interface InternalPermissionData {
   category: string;
   name: string;
   command: string;
-  callback: (player : Player, args : string) => void
+  callback: (player : Player, args : string, id : string) => void
   ignore?: PermissionIgnoring;
 };
 
@@ -38,7 +39,7 @@ export class Permission {
 
   category: string;
   
-  callback : (player : Player, args : string) => void;
+  callback : (player : Player, args : string, id : string) => void;
 
   command: string;
 
@@ -70,11 +71,11 @@ export class Permission {
     if (this.command.toLocaleUpperCase() === command.toLocaleUpperCase().slice(1)) {
       if (user.permissions.has(this.id)) {
         if (this.ignore) {
-          if (!(this.ignore.staff && player.isStaff) && !(this.ignore.admin && player.isAdmin) && !(this.ignore.mod && player.isMod)) {
-            this.callback(player, args);
+          if (!(this.ignore.staff && player.isStaff) && !(this.ignore.admin && player.isAdmin) && !(this.ignore.mod && player.isMod) && !(this.ignore.owner && player.isOwner)) {
+            this.callback(player, args, this.id);
           }
         } else {
-          this.callback(player, args);
+          this.callback(player, args, this.id);
         }
       }
     }
