@@ -1141,15 +1141,6 @@
               managed: true
           });
       }
-      if (!GM.groups.get("Unmanaged")) {
-          GM.groups.add({
-              name: "Unmanaged",
-              permissions: {
-                  allowed: [],
-                  disabled: []
-              }
-          });
-      }
       ex.exports.manager = GM;
       /**
        * Listener for when an extension is registered.

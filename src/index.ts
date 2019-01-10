@@ -19,7 +19,7 @@ export interface ExtensionPermission {
   }
 };
 
-const EXTENSION_ID = "dapersonmgn/groupManagement";
+const EXTENSION_ID = "dapersonmgn/groupManagementBeta";
 
 MessageBot.registerExtension(EXTENSION_ID, ex => {
 
