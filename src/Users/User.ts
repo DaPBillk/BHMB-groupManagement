@@ -1,6 +1,7 @@
 import { Player } from "@bhmb/bot";
 import { UserManager } from "./UserManager";
 import { Permissions, PermissionsSaveData } from "../Permissions/Permissions";
+import { Group } from "../Groups/Group";
 
 export type PlayerResolvable = User|Player|string;
 
@@ -22,6 +23,8 @@ export class User {
 
   permissions: Permissions;
 
+  groups: Set<Group>;
+
   constructor (userData : UserData, manager : UserManager) {
     this.manager = manager;
     if (typeof userData.player === "string") {
@@ -29,6 +32,8 @@ export class User {
     } else {
       this.player = userData.player;
     }
+
+    this.groups = new Set(Array.from((this.manager.management.groups.get() as Map<number, Group>).values()).filter(group => Array.from(group.players).some(player => player.name === this.name)));
     this.permissions = new Permissions(this, userData.permissions);
   }
 

@@ -1,6 +1,7 @@
 import { Player } from "@bhmb/bot";
 import { GroupManager } from "./GroupManager";
 import { Permissions, PermissionsSaveData } from "../Permissions/Permissions";
+import { User } from "../Users/User";
 
 export interface GroupData {
   name: string;
@@ -31,7 +32,7 @@ export class Group {
 
   permissions: Permissions;
 
-  players: Player[];
+  players: Set<Player>;
 
   managed: boolean;
 
@@ -43,11 +44,17 @@ export class Group {
     this.name = groupData.name;
     this.id = groupData.id;
     this.permissions = new Permissions(this, groupData.permissions);
-    this.players = (groupData.players || []).map(playerOrName => typeof playerOrName === "string" ? this.manager.management.extension.world.getPlayer(playerOrName) : playerOrName);
+    this.players = new Set((groupData.players || []).map(playerOrName => typeof playerOrName === "string" ? this.manager.management.extension.world.getPlayer(playerOrName) : playerOrName));
     this.managed = groupData.managed || false;
     this.manager = manager;
-
     this.tab = manager.management.ui.addGroup(this);
+
+    if (this.manager.management.users) {
+      for (const player of this.players) {
+        const user = this.manager.management.users.get(player);
+        user.groups.add(this);
+      }
+    }
 
   }
 
@@ -57,6 +64,29 @@ export class Group {
    */
   rename (newName : string) : boolean {
     return this.manager.rename(this, newName);
+  }
+
+  /**
+   * Add a player to this group. Will return if the operation was successful.
+   * @param playerResolvable 
+   */
+  addPlayer (playerResolvable : Player|User|string) {
+    const p = this.manager.management.extension.world.getPlayer(typeof playerResolvable === "string" ? playerResolvable : playerResolvable.name);
+    if (this.players.has(p)) {
+      return false;
+    } else {
+      this.players.add(p);
+      return true;
+    }
+  }
+
+  /**
+   * Remove a player from this group. Will return if the operation was successful.
+   * @param playerResolvable 
+   */
+  removePlayer (playerResolvable : Player|User|string) {
+    const p = this.manager.management.extension.world.getPlayer(typeof playerResolvable === "string" ? playerResolvable : playerResolvable.name);
+    return this.players.delete(p);
   }
 
   /**
@@ -78,7 +108,7 @@ export class Group {
       id: this.id,
       name: this.name,
       permissions: this.permissions.data,
-      players: this.players.map(player => player.name),
+      players: Array.from(this.players).map(player => player.name),
       managed: this.managed
     };
   }

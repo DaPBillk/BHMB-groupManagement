@@ -59,10 +59,16 @@
           this.name = groupData.name;
           this.id = groupData.id;
           this.permissions = new Permissions(this, groupData.permissions);
-          this.players = (groupData.players || []).map(playerOrName => typeof playerOrName === "string" ? this.manager.management.extension.world.getPlayer(playerOrName) : playerOrName);
+          this.players = new Set((groupData.players || []).map(playerOrName => typeof playerOrName === "string" ? this.manager.management.extension.world.getPlayer(playerOrName) : playerOrName));
           this.managed = groupData.managed || false;
           this.manager = manager;
           this.tab = manager.management.ui.addGroup(this);
+          if (this.manager.management.users) {
+              for (const player of this.players) {
+                  const user = this.manager.management.users.get(player);
+                  user.groups.add(this);
+              }
+          }
       }
       /**
        * Rename this group, will return if the operation was successful.
@@ -70,6 +76,28 @@
        */
       rename(newName) {
           return this.manager.rename(this, newName);
+      }
+      /**
+       * Add a player to this group. Will return if the operation was successful.
+       * @param playerResolvable
+       */
+      addPlayer(playerResolvable) {
+          const p = this.manager.management.extension.world.getPlayer(typeof playerResolvable === "string" ? playerResolvable : playerResolvable.name);
+          if (this.players.has(p)) {
+              return false;
+          }
+          else {
+              this.players.add(p);
+              return true;
+          }
+      }
+      /**
+       * Remove a player from this group. Will return if the operation was successful.
+       * @param playerResolvable
+       */
+      removePlayer(playerResolvable) {
+          const p = this.manager.management.extension.world.getPlayer(typeof playerResolvable === "string" ? playerResolvable : playerResolvable.name);
+          return this.players.delete(p);
       }
       /**
        * Delete this group, will return if the operation was successful.
@@ -88,7 +116,7 @@
               id: this.id,
               name: this.name,
               permissions: this.permissions.data,
-              players: this.players.map(player => player.name),
+              players: Array.from(this.players).map(player => player.name),
               managed: this.managed
           };
       }
@@ -214,7 +242,8 @@
           this.callback = callback;
           this.command = command;
           this.manager = manager;
-          manager.management.extension.world.onMessage.sub(this.handleMessage);
+          this.listener = ({ player, message }) => this.handleMessage({ player, message });
+          manager.management.extension.world.onMessage.sub(this.listener);
       }
       handleMessage({ player, message }) {
           const [command, ...argsRaw] = message.split(" ");
@@ -251,16 +280,15 @@
        */
       add(permissionData) {
           if (!this.get(permissionData.id)) {
-              const permission = new Permission(this, permissionData.extension, {
+              this._permissions.set(permissionData.id, new Permission(this, permissionData.extension, {
                   id: permissionData.id,
                   name: permissionData.name,
                   category: permissionData.category,
                   ignore: permissionData.ignore,
                   command: permissionData.command,
                   callback: permissionData.callback
-              });
-              this._permissions.set(permission.id, permission);
-              this.management.ui.addPermission(permission);
+              }));
+              this.management.ui.addPermission(this._permissions.get(permissionData.id));
               return true;
           }
           return false;
@@ -273,7 +301,7 @@
           const permission = this._permissions.get(id);
           const deleted = this._permissions.delete(id);
           if (deleted) {
-              this.management.extension.world.onMessage.unsub(permission.handleMessage);
+              this.management.extension.world.onMessage.unsub(permission.listener);
           }
           return deleted;
       }
@@ -317,6 +345,7 @@
           else {
               this.player = userData.player;
           }
+          this.groups = new Set(Array.from(this.manager.management.groups.get().values()).filter(group => Array.from(group.players).some(player => player.name === this.name)));
           this.permissions = new Permissions(this, userData.permissions);
       }
       /**
@@ -410,14 +439,12 @@
           const groups = this.management.groups.get();
           for (const [, group] of groups) {
               const tab = group.tab;
-              let firstSubCategory = false;
               if (!tab.querySelector(`p[data-category="${parentCategory}"]`)) {
                   //Parent category does not exist, we need to create it.
                   tab.querySelector(".menu").innerHTML += `<p class="menu-label is-unselectable" data-category="${parentCategory}">${parentCategory}</p><ul class="menu-list" data-category="${parentCategory}"></ul>`;
               }
               if (!tab.querySelector(`ul[data-category="${parentCategory}"] > li > a[data-subcategory="${subCategory}"]`)) {
                   //Subcategory doesn't exist, create it.
-                  firstSubCategory = true;
                   const listEl = tab.querySelector(`ul[data-category="${parentCategory}"]`);
                   listEl.innerHTML += `<li><a href="#" class="is-unselectable" data-subcategory="${subCategory}">${subCategory}</a></li>`;
                   listEl.querySelector(`a[data-subcategory="${subCategory}"]`).addEventListener("click", event => this.subcategoryListener(event, group));
@@ -431,9 +458,7 @@
                   .replace("{PERMISSION}", permission.name)
                   .replace("{ALLOWED}", group.permissions.has(permission) ? "checked " : "")
                   .replace("{DISABLED}", group.permissions.disabled.has(permission.id) ? "disabled" : "");
-              if (firstSubCategory) {
-                  tab.querySelector(`a[data-subcategory="${subCategory}"]`).click();
-              }
+              tab.querySelector(`a[data-subcategory="${subCategory}"]`).click();
           }
       }
       addGroup(group) {
@@ -621,6 +646,9 @@
           this.groups = new GroupManager(this);
           this.users = new UserManager(this);
       }
+      /**
+       * Called when the extension is to be uninstalled.
+       */
       uninstall() {
           this.permissions.uninstall();
           this.ui.uninstall();
@@ -835,6 +863,11 @@
           bot.MessageBot.extensionRegistered.unsub(handleExtensionRegister);
           bot.MessageBot.extensionDeregistered.unsub(handleExtensionDeregister);
           GM.ui.uninstall();
+      };
+      ex.uninstall = () => {
+          GM.uninstall();
+          bot.MessageBot.extensionRegistered.unsub(handleExtensionRegister);
+          bot.MessageBot.extensionDeregistered.unsub(handleExtensionDeregister);
       };
       bot.MessageBot.extensionRegistered.sub(handleExtensionRegister);
       bot.MessageBot.extensionDeregistered.sub(handleExtensionDeregister);

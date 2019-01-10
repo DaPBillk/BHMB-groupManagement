@@ -46,6 +46,8 @@ export class Permission {
 
   ignore?: PermissionIgnoring;
 
+  listener?: ({player, message} : {player : Player, message : string}) => void;
+
   constructor (manager: PermissionManager, extension : string, data: InternalPermissionData) {
     const {id, name, category, ignore, callback, command} = data;
     this.extension = extension;
@@ -56,7 +58,8 @@ export class Permission {
     this.callback = callback;
     this.command = command;
     this.manager = manager;
-    manager.management.extension.world.onMessage.sub(this.handleMessage);
+    this.listener = ({player, message} : {player : Player, message : string}) => this.handleMessage({player, message})
+    manager.management.extension.world.onMessage.sub(this.listener);
 
   }
 

@@ -128,6 +128,12 @@ MessageBot.registerExtension(EXTENSION_ID, ex => {
     GM.ui.uninstall();
   };
 
+  ex.uninstall = () => {
+    GM.uninstall();
+    MessageBot.extensionRegistered.unsub(handleExtensionRegister);
+    MessageBot.extensionDeregistered.unsub(handleExtensionDeregister);
+  };
+
   MessageBot.extensionRegistered.sub(handleExtensionRegister);
   MessageBot.extensionDeregistered.sub(handleExtensionDeregister);
   handleExistingExtensions();

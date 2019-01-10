@@ -1,5 +1,6 @@
 import { GroupManagement } from "../GroupManagement";
 import { Permission, PermissionData, PermissionResolvable } from "./Permission";
+import { Player } from "@bhmb/bot";
 
 export class PermissionManager {
 
@@ -17,16 +18,15 @@ export class PermissionManager {
    */
   add (permissionData : PermissionData) : boolean {
     if (!this.get(permissionData.id)) {
-      const permission = new Permission(this, permissionData.extension, {
+      this._permissions.set(permissionData.id, new Permission(this, permissionData.extension, {
         id: permissionData.id,
         name: permissionData.name,
         category: permissionData.category,
         ignore: permissionData.ignore,
         command: permissionData.command,
         callback: permissionData.callback
-      });
-      this._permissions.set(permission.id, permission);
-      this.management.ui.addPermission(permission);
+      }));
+      this.management.ui.addPermission(this._permissions.get(permissionData.id) as Permission);
       return true;
     }
     return false;
@@ -40,7 +40,7 @@ export class PermissionManager {
     const permission = this._permissions.get(id) as Permission;
     const deleted = this._permissions.delete(id);
     if (deleted) {
-      this.management.extension.world.onMessage.unsub(permission.handleMessage);
+      this.management.extension.world.onMessage.unsub(permission.listener as ({player, message} : {player: Player, message: string}) => void);
     }
     return deleted;
   }

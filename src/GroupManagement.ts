@@ -24,6 +24,9 @@ export class GroupManagement {
     this.users = new UserManager(this);
   }
 
+  /**
+   * Called when the extension is to be uninstalled.
+   */
   uninstall () {
     this.permissions.uninstall();
     this.ui.uninstall();
