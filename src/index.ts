@@ -4,7 +4,7 @@ import { BlockheadPermissions } from "./Extensions/Blockheads";
 import { GroupManagementPermissions } from "./Extensions/GroupManagement";
 
 export interface ExtensionPermission {
-  callback: (player: Player, args: string, id: string) => void;
+  callback: (player: Player, args: string, bot : MessageBot, id: string) => void;
   id: string;
   command: string;
   display: {
@@ -19,7 +19,7 @@ export interface ExtensionPermission {
   }
 };
 
-const EXTENSION_ID = "dapersonmgn/groupManagementBeta";
+export const EXTENSION_ID = "dapersonmgn/groupManagement";
 
 MessageBot.registerExtension(EXTENSION_ID, ex => {
 

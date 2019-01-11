@@ -1,5 +1,5 @@
 import { PermissionManager } from "./PermissionManager";
-import { Player } from "@bhmb/bot";
+import { Player, MessageBot } from "@bhmb/bot";
 
 export type PermissionResolvable = string|Permission;
 
@@ -16,7 +16,7 @@ export interface PermissionData {
   name: string;
   category: string;
   command: string;
-  callback: (player: Player, args: string, id : string) => void,
+  callback: (player: Player, args: string, bot : MessageBot, id : string) => void,
   ignore?: PermissionIgnoring
 };
 
@@ -25,7 +25,7 @@ interface InternalPermissionData {
   category: string;
   name: string;
   command: string;
-  callback: (player : Player, args : string, id : string) => void
+  callback: (player : Player, args : string, bot : MessageBot, id : string) => void
   ignore?: PermissionIgnoring;
 };
 
@@ -39,7 +39,7 @@ export class Permission {
 
   category: string;
   
-  callback : (player : Player, args : string, id : string) => void;
+  callback : (player : Player, args : string, bot : MessageBot, id : string) => void;
 
   command: string;
 
@@ -72,10 +72,10 @@ export class Permission {
       if (user.permissions.has(this.id)) {
         if (this.ignore) {
           if (!(this.ignore.staff && player.isStaff) && !(this.ignore.admin && player.isAdmin) && !(this.ignore.mod && player.isMod) && !(this.ignore.owner && player.isOwner)) {
-            this.callback(player, args, this.id);
+            this.callback(player, args, this.manager.management.extension.bot, this.id);
           }
         } else {
-          this.callback(player, args, this.id);
+          this.callback(player, args, this.manager.management.extension.bot, this.id);
         }
       }
     }

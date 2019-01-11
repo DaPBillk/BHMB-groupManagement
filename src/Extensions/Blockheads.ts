@@ -245,7 +245,7 @@ export const BlockheadPermissions : BlockheadExtensionPermission[] =  [
       admin: true
     },
     display: {
-      category: "Blockheads/Administrator Commands",
+      category: "Blockheads/World Commands",
       name: "Turn PVP on"
     }
   },
@@ -257,7 +257,7 @@ export const BlockheadPermissions : BlockheadExtensionPermission[] =  [
       admin: true
     },
     display: {
-      category: "Blockheads/Administrator Commands",
+      category: "Blockheads/World Commands",
       name: "Turn PVP off"
     }
   },
