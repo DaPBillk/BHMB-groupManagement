@@ -1,4 +1,4 @@
-import callback from "./GroupManagementHandler";
+import { callback } from "./GroupManagementHandler";
 import { ExtensionPermission } from "..";
 
 interface GroupManagementExtensionPermission extends ExtensionPermission {
@@ -24,7 +24,7 @@ export const GroupManagementPermissions : GroupManagementExtensionPermission[] =
     command: "GM-CHECK",
     display: {
       category: "Group Management/General Commands",
-      name: "Check if a player has a permission with /GM-check"
+      name: "Check if a player has permission to use a command with /GM-check"
     }
   },
   {

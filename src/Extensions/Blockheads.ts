@@ -1,4 +1,4 @@
-import callback from "./BlockheadsHandler";
+import { callback } from "./BlockheadsHandler";
 import { ExtensionPermission } from "..";
 
 interface BlockheadExtensionPermission extends ExtensionPermission {

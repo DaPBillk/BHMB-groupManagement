@@ -20,7 +20,7 @@ export class GroupManager {
    * @param groupData Data about the group to be added. 
    */
   add (groupData : GroupData) : Group|undefined {
-    if (!this.get(groupData.name)) {
+    if (!groupData.name.includes(" ") && !this.get(groupData.name)) {
       const id = this.nextID;
       const group = new Group({id, ...groupData}, this);
       this._groups.set(id, group);
@@ -69,7 +69,7 @@ export class GroupManager {
    */
   rename (groupResolvable : GroupResolvable, newName : string) : boolean {
     const group = this.resolveGroup(groupResolvable);
-    if (group && !this.get(newName) && !group.managed) {
+    if (!newName.includes(" ") && group && !this.get(newName) && !group.managed) {
       group.name = newName;
       this.save();
       this.management.ui.refreshGroup(group);

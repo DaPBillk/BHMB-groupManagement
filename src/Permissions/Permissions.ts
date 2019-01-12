@@ -36,8 +36,14 @@ export class Permissions {
     const permission = this.resolvePermission(permissionResolvable);
     if (!permission || (this.allowed.has(permission.id) && !disabled && !this.disabled.has(permission.id)) || (this.disabled.has(permission.id) && !sudo)) return false;
     this.allowed.add(permission.id);
+    if (this.parent.type === "Group") {
+      this.parent.permissionUIAllow(permission, true);
+    }
     if (disabled && !this.disabled.has(permission.id)) {
       this.disabled.add(permission.id);
+      if (this.parent.type === "Group") {
+        this.parent.permissionUIDisable(permission, true);
+      }
     }
     this.save();
     return true;
@@ -49,6 +55,12 @@ export class Permissions {
     const deleted = this.allowed.delete(permission.id);
     const deletedDisabled = disabled ? this.disabled.delete(permission.id) : false;
     this.save();
+    if (deleted && this.parent.type === "Group") {
+      this.parent.permissionUIAllow(permission, false);
+    }
+    if (deletedDisabled && this.parent.type === "Group") {
+      this.parent.permissionUIDisable(permission, false);
+    }
     return deleted || deletedDisabled;
   }
 

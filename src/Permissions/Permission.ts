@@ -69,7 +69,8 @@ export class Permission {
     const args = argsRaw.join(" ");
     const user = this.manager.management.users.get(player);
     if (this.command.toLocaleUpperCase() === command.toLocaleUpperCase().slice(1)) {
-      if (user.permissions.has(this.id)) {
+
+      if (user.permissions.has(this.id) || user.groups.some(group => group.permissions.has(this.id))) {
         if (this.ignore) {
           if (!(this.ignore.staff && player.isStaff) && !(this.ignore.admin && player.isAdmin) && !(this.ignore.mod && player.isMod) && !(this.ignore.owner && player.isOwner)) {
             this.callback(player, args, this.manager.management.extension.bot, this.id);

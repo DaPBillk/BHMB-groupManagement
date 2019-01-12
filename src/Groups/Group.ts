@@ -2,6 +2,7 @@ import { Player } from "@bhmb/bot";
 import { GroupManager } from "./GroupManager";
 import { Permissions, PermissionsSaveData } from "../Permissions/Permissions";
 import { User } from "../Users/User";
+import { Permission } from "../Permissions/Permission";
 
 export interface GroupData {
   name: string;
@@ -40,19 +41,22 @@ export class Group {
 
   tab?: HTMLDivElement;
 
+  type: "Group";
+
   constructor (groupData : GroupConstructorData, manager : GroupManager) {
+    this.manager = manager;
     this.name = groupData.name;
     this.id = groupData.id;
     this.permissions = new Permissions(this, groupData.permissions);
     this.players = new Set((groupData.players || []).map(playerOrName => typeof playerOrName === "string" ? this.manager.management.extension.world.getPlayer(playerOrName) : playerOrName));
     this.managed = groupData.managed || false;
-    this.manager = manager;
     this.tab = manager.management.ui.addGroup(this);
+    this.type = "Group";
 
     if (this.manager.management.users) {
       for (const player of this.players) {
         const user = this.manager.management.users.get(player);
-        user.groups.add(this);
+        user.groups.push(this);
       }
     }
 
@@ -72,10 +76,11 @@ export class Group {
    */
   addPlayer (playerResolvable : Player|User|string) {
     const p = this.manager.management.extension.world.getPlayer(typeof playerResolvable === "string" ? playerResolvable : playerResolvable.name);
-    if (this.players.has(p)) {
+    if (this.players.has(p) || this.managed) {
       return false;
     } else {
       this.players.add(p);
+      this.save();
       return true;
     }
   }
@@ -86,7 +91,33 @@ export class Group {
    */
   removePlayer (playerResolvable : Player|User|string) {
     const p = this.manager.management.extension.world.getPlayer(typeof playerResolvable === "string" ? playerResolvable : playerResolvable.name);
-    return this.players.delete(p);
+    if (!this.managed && this.players.delete(p)) {
+      this.save();
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Change the UI to mark this permission as selected/unselected.
+   * @param permission 
+   */
+  permissionUIAllow (permission : Permission, check : boolean) {
+    if (this.tab) {
+      const input = this.tab.querySelector(`input[data-permission="${permission.id}"]`) as HTMLInputElement;
+      input.checked = check;
+    }
+  }
+
+  /**
+   * Change the UI to mark this permission as disabled/not disabled.
+   * @param permission 
+   */
+  permissionUIDisable (permission : Permission, disable : boolean) {
+    if (this.tab) {
+      const input = this.tab.querySelector(`input[data-permission="${permission.id}"]`) as HTMLInputElement;
+      input.disabled = disable;
+    }
   }
 
   /**

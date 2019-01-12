@@ -23,7 +23,7 @@ export class User {
 
   permissions: Permissions;
 
-  groups: Set<Group>;
+  type: "User";
 
   constructor (userData : UserData, manager : UserManager) {
     this.manager = manager;
@@ -33,8 +33,8 @@ export class User {
       this.player = userData.player;
     }
 
-    this.groups = new Set(Array.from((this.manager.management.groups.get() as Map<number, Group>).values()).filter(group => Array.from(group.players).some(player => player.name === this.name)));
     this.permissions = new Permissions(this, userData.permissions);
+    this.type = "User";
   }
 
   /**
@@ -49,6 +49,20 @@ export class User {
    */
   save () {
     return this.manager.save();
+  }
+
+  get groups () {
+    const groups = Array.from((this.manager.management.groups.get() as Map<number, Group>).values()).filter(group => Array.from(group.players).some(player => player.name === this.name));
+    
+    if (this.player.isAdmin) {
+      groups.push(this.manager.management.groups.get("Administrator") as Group);
+    }
+    if (this.player.isMod) {
+      groups.push(this.manager.management.groups.get("Moderator") as Group);
+    }
+    groups.push(this.manager.management.groups.get("Anyone") as Group);
+    
+    return groups;
   }
 
   /**

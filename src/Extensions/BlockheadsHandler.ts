@@ -1,6 +1,7 @@
 import { Player, MessageBot } from "@bhmb/bot";
-import { EXTENSION_ID } from "..";
 import { GroupManagement } from "../GroupManagement";
+
+const EXTENSION_ID = "dapersonmgn/groupManagementBeta";
 
 const helpMessages : {
   [key: string] : string
@@ -33,17 +34,18 @@ const helpMessages : {
   "BH.SETPRIVACY": "/SET-PRIVACY public/searchable/private - changes the privacy setting."
 };
 
-export default async (player : Player, args : string, bot : MessageBot, id : string) => {
+export const callback = async (player : Player, args : string, bot : MessageBot, id : string) => {
   const manager = (bot.getExports(EXTENSION_ID) as {manager: GroupManagement}).manager;
+  const user = manager.users.get(player);
   const targetPlayer = bot.world.getPlayer(args);
-  const lists = await bot.world.getLists();
   const overview = await bot.world.getOverview();
+  let lists;
 
   switch (id) {
     case "BH.HELP":
       let helpMessage = "\n";
       for (const permissionID in helpMessages) {
-        if (manager.users.get(player).permissions.has(permissionID)) {
+        if (user.permissions.has(permissionID) || user.groups.some(group => group.permissions.has(permissionID))) {
           helpMessage += helpMessages[permissionID]+"\n";
         }
       }
@@ -51,7 +53,7 @@ export default async (player : Player, args : string, bot : MessageBot, id : str
     break;
 
     case "BH.PLAYERS":
-      bot.world.send(bot.world.players.length === 0 ? "No players currently connected." : `There are ${bot.world.players.length} players connected:\n${bot.world.players.map(player => player.name).join("\n")}`);
+      bot.world.send(overview.online.length === 0 ? "No players currently connected." : `There are ${overview.online.length} players connected:\n${overview.online.join("\n")}`);
     break;
 
     case "BH.KICK":
@@ -83,7 +85,7 @@ export default async (player : Player, args : string, bot : MessageBot, id : str
       }
     break;
     case "BH.BAN_ADMIN":
-    if (targetPlayer.isAdmin) {
+    if (targetPlayer.isAdmin && !targetPlayer.isOwner) {
       bot.world.send(`/BAN ${targetPlayer.name}`);
       bot.world.send(`${targetPlayer.name} has been added to the blacklist`);
     }
@@ -102,7 +104,7 @@ export default async (player : Player, args : string, bot : MessageBot, id : str
       }
     break;
     case "BH.BAN_NO_DEVICE_ADMIN":
-      if (targetPlayer.isAdmin) {
+      if (targetPlayer.isAdmin && !targetPlayer.isOwner) {
         bot.world.send(`/BAN-NO-DEVICE ${targetPlayer.name}`);
         bot.world.send(`${targetPlayer.name} has been added to the blacklist`);
       }
@@ -112,11 +114,13 @@ export default async (player : Player, args : string, bot : MessageBot, id : str
     case "BH.LIST_ADMINLIST":
     case "BH.LIST_BLACKLIST":
     case "BH.LIST_WHITELIST":
+      lists = await bot.world.getLists(true);
       const listType = id.split("_")[1].toLocaleLowerCase() as "modlist"|"adminlist"|"blacklist"|"whitelist";
       bot.world.send(`${listType[0].toLocaleUpperCase()}${listType.slice(1)}:\n${lists[listType].join(", ")}`);
     break;
 
     case "BH.UNBAN":
+      lists = await bot.world.getLists(true);
       if (lists.blacklist.map(s => s.toLocaleUpperCase()).includes(targetPlayer.name.toLocaleUpperCase())) {
         bot.world.send(`${targetPlayer.name} was not on the blacklist.`);
       } else {

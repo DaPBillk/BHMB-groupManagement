@@ -200,6 +200,8 @@ class UI {
         });
         if (result) {
           this._ui.toggleMenu();
+        } else if (name.includes(" ")) {
+          this._ui.notify("Groups cannot have a space!");
         } else {
           this._ui.notify("This group name already exists!");
         }

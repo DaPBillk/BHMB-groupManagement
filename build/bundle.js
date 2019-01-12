@@ -25,8 +25,14 @@
           if (!permission || (this.allowed.has(permission.id) && !disabled && !this.disabled.has(permission.id)) || (this.disabled.has(permission.id) && !sudo))
               return false;
           this.allowed.add(permission.id);
+          if (this.parent.type === "Group") {
+              this.parent.permissionUIAllow(permission, true);
+          }
           if (disabled && !this.disabled.has(permission.id)) {
               this.disabled.add(permission.id);
+              if (this.parent.type === "Group") {
+                  this.parent.permissionUIDisable(permission, true);
+              }
           }
           this.save();
           return true;
@@ -38,6 +44,12 @@
           const deleted = this.allowed.delete(permission.id);
           const deletedDisabled = disabled ? this.disabled.delete(permission.id) : false;
           this.save();
+          if (deleted && this.parent.type === "Group") {
+              this.parent.permissionUIAllow(permission, false);
+          }
+          if (deletedDisabled && this.parent.type === "Group") {
+              this.parent.permissionUIDisable(permission, false);
+          }
           return deleted || deletedDisabled;
       }
       save() {
@@ -56,17 +68,18 @@
 
   class Group {
       constructor(groupData, manager) {
+          this.manager = manager;
           this.name = groupData.name;
           this.id = groupData.id;
           this.permissions = new Permissions(this, groupData.permissions);
           this.players = new Set((groupData.players || []).map(playerOrName => typeof playerOrName === "string" ? this.manager.management.extension.world.getPlayer(playerOrName) : playerOrName));
           this.managed = groupData.managed || false;
-          this.manager = manager;
           this.tab = manager.management.ui.addGroup(this);
+          this.type = "Group";
           if (this.manager.management.users) {
               for (const player of this.players) {
                   const user = this.manager.management.users.get(player);
-                  user.groups.add(this);
+                  user.groups.push(this);
               }
           }
       }
@@ -83,11 +96,12 @@
        */
       addPlayer(playerResolvable) {
           const p = this.manager.management.extension.world.getPlayer(typeof playerResolvable === "string" ? playerResolvable : playerResolvable.name);
-          if (this.players.has(p)) {
+          if (this.players.has(p) || this.managed) {
               return false;
           }
           else {
               this.players.add(p);
+              this.save();
               return true;
           }
       }
@@ -97,7 +111,31 @@
        */
       removePlayer(playerResolvable) {
           const p = this.manager.management.extension.world.getPlayer(typeof playerResolvable === "string" ? playerResolvable : playerResolvable.name);
-          return this.players.delete(p);
+          if (!this.managed && this.players.delete(p)) {
+              this.save();
+              return true;
+          }
+          return false;
+      }
+      /**
+       * Change the UI to mark this permission as selected/unselected.
+       * @param permission
+       */
+      permissionUIAllow(permission, check) {
+          if (this.tab) {
+              const input = this.tab.querySelector(`input[data-permission="${permission.id}"]`);
+              input.checked = check;
+          }
+      }
+      /**
+       * Change the UI to mark this permission as disabled/not disabled.
+       * @param permission
+       */
+      permissionUIDisable(permission, disable) {
+          if (this.tab) {
+              const input = this.tab.querySelector(`input[data-permission="${permission.id}"]`);
+              input.disabled = disable;
+          }
       }
       /**
        * Delete this group, will return if the operation was successful.
@@ -133,7 +171,7 @@
        * @param groupData Data about the group to be added.
        */
       add(groupData) {
-          if (!this.get(groupData.name)) {
+          if (!groupData.name.includes(" ") && !this.get(groupData.name)) {
               const id = this.nextID;
               const group = new Group(Object.assign({ id }, groupData), this);
               this._groups.set(id, group);
@@ -182,7 +220,7 @@
        */
       rename(groupResolvable, newName) {
           const group = this.resolveGroup(groupResolvable);
-          if (group && !this.get(newName) && !group.managed) {
+          if (!newName.includes(" ") && group && !this.get(newName) && !group.managed) {
               group.name = newName;
               this.save();
               this.management.ui.refreshGroup(group);
@@ -250,14 +288,14 @@
           const args = argsRaw.join(" ");
           const user = this.manager.management.users.get(player);
           if (this.command.toLocaleUpperCase() === command.toLocaleUpperCase().slice(1)) {
-              if (user.permissions.has(this.id)) {
+              if (user.permissions.has(this.id) || user.groups.some(group => group.permissions.has(this.id))) {
                   if (this.ignore) {
                       if (!(this.ignore.staff && player.isStaff) && !(this.ignore.admin && player.isAdmin) && !(this.ignore.mod && player.isMod) && !(this.ignore.owner && player.isOwner)) {
-                          this.callback(player, args, this.id);
+                          this.callback(player, args, this.manager.management.extension.bot, this.id);
                       }
                   }
                   else {
-                      this.callback(player, args, this.id);
+                      this.callback(player, args, this.manager.management.extension.bot, this.id);
                   }
               }
           }
@@ -345,8 +383,8 @@
           else {
               this.player = userData.player;
           }
-          this.groups = new Set(Array.from(this.manager.management.groups.get().values()).filter(group => Array.from(group.players).some(player => player.name === this.name)));
           this.permissions = new Permissions(this, userData.permissions);
+          this.type = "User";
       }
       /**
        * Delete this user's permissions.
@@ -359,6 +397,17 @@
        */
       save() {
           return this.manager.save();
+      }
+      get groups() {
+          const groups = Array.from(this.manager.management.groups.get().values()).filter(group => Array.from(group.players).some(player => player.name === this.name));
+          if (this.player.isAdmin) {
+              groups.push(this.manager.management.groups.get("Administrator"));
+          }
+          if (this.player.isMod) {
+              groups.push(this.manager.management.groups.get("Moderator"));
+          }
+          groups.push(this.manager.management.groups.get("Anyone"));
+          return groups;
       }
       /**
        * Get the name of the user.
@@ -590,6 +639,9 @@
                   if (result) {
                       this._ui.toggleMenu();
                   }
+                  else if (name.includes(" ")) {
+                      this._ui.notify("Groups cannot have a space!");
+                  }
                   else {
                       this._ui.notify("This group name already exists!");
                   }
@@ -667,8 +719,264 @@
       }
   }
 
-  var callback = (player, args, id) => {
+  /*! *****************************************************************************
+  Copyright (c) Microsoft Corporation. All rights reserved.
+  Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+  this file except in compliance with the License. You may obtain a copy of the
+  License at http://www.apache.org/licenses/LICENSE-2.0
+
+  THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
+  WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
+  MERCHANTABLITY OR NON-INFRINGEMENT.
+
+  See the Apache Version 2.0 License for specific language governing permissions
+  and limitations under the License.
+  ***************************************************************************** */
+
+  function __awaiter(thisArg, _arguments, P, generator) {
+      return new (P || (P = Promise))(function (resolve, reject) {
+          function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+          function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+          function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+          step((generator = generator.apply(thisArg, _arguments || [])).next());
+      });
+  }
+
+  const EXTENSION_ID = "dapersonmgn/groupManagementBeta";
+  const helpMessages = {
+      "BH.HELP": "/HELP - display this message.",
+      "BH.PLAYERS": "/PLAYERS - list currently active players.",
+      "BH.KICK": "/KICK player_name - kicks player_name, but they will still be allowed to reconnect.",
+      "BH.BAN": "/BAN player_name_or_ip - adds player_name_or_ip to the blacklist, ban's that user's device from reconnecting with a different name, and kicks anyone who is no longer authorized.",
+      "BH.BAN_NO_DEVICE": "/BAN-NO-DEVICE player_name_or_ip - works the same as the ban command, but doesn't ban the player's device.",
+      "BH.UNBAN": "/UNBAN player_name_or_ip - removes player_name_or_ip from the blacklist.",
+      "BH.WHITELIST": "/WHITELIST player_name_or_ip - adds player_name_or_ip to the whitelist, and kicks anyone who is no longer authorized.",
+      "BH.UNWHITELIST": "/UNWHITELIST player_name_or_ip - removes player_name_or_ip from the whitelist, and kicks anyone who is no longer authorized.",
+      "BH.LIST_BLACKLIST": "/LIST-BLACKLIST - lists the 50 most recent players on the blacklist.",
+      "BH.LIST_WHITELIST": "/LIST-WHITELIST - lists the 50 most recent players on the whitelist.",
+      "BH.LIST_MODLIST": "/LIST-MODLIST - lists the 50 most recent players on the modlist.",
+      "BH.LIST_ADMINLIST": "/LIST-ADMINLIST - lists the 50 most recent players on the adminlist.",
+      "BH.PVPON": "/PVP-ON - enables PVP (Player vs. Player) so players can directly hurt each other.",
+      "BH.PVPOFF": "/PVP-OFF - disables PVP (Player vs. Player) so players cannot directly hurt each other",
+      "BH.LOADLISTS": "/LOAD-LISTS - reloads the blacklist.txt, modlist.txt and adminlist.txt files, and kicks anyone who is no longer authorized.",
+      "BH.MOD": "/MOD player_name - adds player_name to the modlist, allowing them to issue some server commands via chat.",
+      "BH.UNMOD": "/UNMOD player_name - removes player_name from the modlist.",
+      "BH.ADMIN": "/ADMIN player_name - adds player_name to the adminlist, allowing them to issue server commands via chat.",
+      "BH.UNADMIN": "/UNADMIN player_name - removes player_name from the adminlist.",
+      "BH.CLEARBLACKLIST": "/CLEAR-BLACKLIST - removes all names from the blacklist.",
+      "BH.CLEARWHITELIST": "/CLEAR-WHITELIST - removes all names from the whitelist.",
+      "BH.CLEARMODLIST": "/CLEAR-MODLIST - removes all names from the modlist.",
+      "BH.CLEARADMINLIST": "/CLEAR-ADMINLIST - removes all names from the adminlist.",
+      "BH.SETPASSWORD": "/SET-PASSWORD password - sets a new password, which all players except the owner must use in order to connect.",
+      "BH.REMOVEPASSWORD": "/REMOVE-PASSWORD - removes the password, so all players may connect.",
+      "BH.SETPRIVACY": "/SET-PRIVACY public/searchable/private - changes the privacy setting."
   };
+  const callback = (player, args, bot$$1, id) => __awaiter(undefined, void 0, void 0, function* () {
+      const manager = bot$$1.getExports(EXTENSION_ID).manager;
+      const user = manager.users.get(player);
+      const targetPlayer = bot$$1.world.getPlayer(args);
+      const overview = yield bot$$1.world.getOverview();
+      let lists;
+      switch (id) {
+          case "BH.HELP":
+              let helpMessage = "\n";
+              for (const permissionID in helpMessages) {
+                  if (user.permissions.has(permissionID) || user.groups.some(group => group.permissions.has(permissionID))) {
+                      helpMessage += helpMessages[permissionID] + "\n";
+                  }
+              }
+              bot$$1.world.send(helpMessage);
+              break;
+          case "BH.PLAYERS":
+              bot$$1.world.send(overview.online.length === 0 ? "No players currently connected." : `There are ${overview.online.length} players connected:\n${overview.online.join("\n")}`);
+              break;
+          case "BH.KICK":
+              if (!targetPlayer.isStaff) {
+                  bot$$1.world.send(`/KICK ${targetPlayer.name}`);
+              }
+              break;
+          case "BH.KICK_MOD":
+              if (!targetPlayer.isAdmin && targetPlayer.isMod) {
+                  bot$$1.world.send(`/KICK ${targetPlayer.name}`);
+              }
+              break;
+          case "BH.KICK_ADMIN":
+              if (targetPlayer.isAdmin) {
+                  bot$$1.world.send(`/KICK ${targetPlayer.name}`);
+              }
+              break;
+          case "BH.BAN":
+              if (!targetPlayer.isStaff) {
+                  bot$$1.world.send(`/BAN ${targetPlayer.name}`);
+                  bot$$1.world.send(`${targetPlayer.name} has been added to the blacklist`);
+              }
+              break;
+          case "BH.BAN_MOD":
+              if (targetPlayer.isMod && !targetPlayer.isAdmin) {
+                  bot$$1.world.send(`/BAN ${targetPlayer.name}`);
+                  bot$$1.world.send(`${targetPlayer.name} has been added to the blacklist`);
+              }
+              break;
+          case "BH.BAN_ADMIN":
+              if (targetPlayer.isAdmin && !targetPlayer.isOwner) {
+                  bot$$1.world.send(`/BAN ${targetPlayer.name}`);
+                  bot$$1.world.send(`${targetPlayer.name} has been added to the blacklist`);
+              }
+              break;
+          case "BH.BAN_NO_DEVICE":
+              if (!targetPlayer.isStaff) {
+                  bot$$1.world.send(`/BAN-NO-DEVICE ${targetPlayer.name}`);
+                  bot$$1.world.send(`${targetPlayer.name} has been added to the blacklist`);
+              }
+              break;
+          case "BH.BAN_NO_DEVICE_MOD":
+              if (!targetPlayer.isAdmin && targetPlayer.isMod) {
+                  bot$$1.world.send(`/BAN-NO-DEVICE ${targetPlayer.name}`);
+                  bot$$1.world.send(`${targetPlayer.name} has been added to the blacklist`);
+              }
+              break;
+          case "BH.BAN_NO_DEVICE_ADMIN":
+              if (targetPlayer.isAdmin && !targetPlayer.isOwner) {
+                  bot$$1.world.send(`/BAN-NO-DEVICE ${targetPlayer.name}`);
+                  bot$$1.world.send(`${targetPlayer.name} has been added to the blacklist`);
+              }
+              break;
+          case "BH.LIST_MODLIST":
+          case "BH.LIST_ADMINLIST":
+          case "BH.LIST_BLACKLIST":
+          case "BH.LIST_WHITELIST":
+              lists = yield bot$$1.world.getLists(true);
+              const listType = id.split("_")[1].toLocaleLowerCase();
+              bot$$1.world.send(`${listType[0].toLocaleUpperCase()}${listType.slice(1)}:\n${lists[listType].join(", ")}`);
+              break;
+          case "BH.UNBAN":
+              lists = yield bot$$1.world.getLists(true);
+              if (lists.blacklist.map(s => s.toLocaleUpperCase()).includes(targetPlayer.name.toLocaleUpperCase())) {
+                  bot$$1.world.send(`${targetPlayer.name} was not on the blacklist.`);
+              }
+              else {
+                  bot$$1.world.send(`/UNBAN ${targetPlayer.name}`);
+                  bot$$1.world.send(`${targetPlayer.name} has been removed from the blacklist.`);
+              }
+              break;
+          case "BH.WHITELIST":
+              if (targetPlayer.isWhitelisted) {
+                  bot$$1.world.send(`${targetPlayer.name} was already on the whitelist.`);
+              }
+              else {
+                  bot$$1.world.send(`/WHITELIST ${targetPlayer.name}`);
+                  bot$$1.world.send(`${targetPlayer.name} has been added to the whitelist.`);
+              }
+              break;
+          case "BH.UNWHITELIST":
+              if (targetPlayer.isWhitelisted) {
+                  bot$$1.world.send(`/UNWHITELIST ${targetPlayer.name}`);
+                  bot$$1.world.send(`${targetPlayer.name} has been removed from the whitelist.`);
+              }
+              else {
+                  bot$$1.world.send(`${targetPlayer.name} was not on the whitelist.`);
+              }
+              break;
+          case "BH.STOP":
+              bot$$1.world.send("/STOP");
+              break;
+          case "BH.PVPON":
+              if (overview.pvp) {
+                  bot$$1.world.send("PVP was already enabled.");
+              }
+              else {
+                  bot$$1.world.send("/PVP-ON");
+                  bot$$1.world.send("PVP is now enabled.");
+              }
+              break;
+          case "BH.PVPOFF":
+              if (overview.pvp) {
+                  bot$$1.world.send("/PVP-OFF");
+                  bot$$1.world.send("PVP is now disabled.");
+              }
+              else {
+                  bot$$1.world.send("PVP was already disabled.");
+              }
+              break;
+          case "BH.LOADLISTS":
+              bot$$1.world.send("/LOAD-LISTS");
+              bot$$1.world.send("Reloaded lists.");
+              break;
+          case "BH.MOD":
+              if (targetPlayer.isMod) {
+                  bot$$1.world.send(`${targetPlayer.name} was already on the modlist`);
+              }
+              else {
+                  bot$$1.world.send(`/MOD ${targetPlayer.name}`);
+                  bot$$1.world.send(`${targetPlayer.name} has been added to the modlist`);
+              }
+              break;
+          case "BH.UNMOD":
+              if (targetPlayer.isMod) {
+                  bot$$1.world.send(`/UNMOD ${targetPlayer.name}`);
+                  bot$$1.world.send(`${targetPlayer.name} has been removed from the modlist`);
+              }
+              else {
+                  bot$$1.world.send(`${targetPlayer.name} was not on the modlist`);
+              }
+              break;
+          case "BH.ADMIN":
+              if (targetPlayer.isAdmin) {
+                  bot$$1.world.send(`${targetPlayer.name} was already on the adminlist`);
+              }
+              else {
+                  bot$$1.world.send(`/ADMIN ${targetPlayer.name}`);
+                  bot$$1.world.send(`${targetPlayer.name} has been added to the adminlist`);
+              }
+              break;
+          case "BH.UNADMIN":
+              if (targetPlayer.isAdmin) {
+                  bot$$1.world.send(`/UNADMIN ${targetPlayer.name}`);
+                  bot$$1.world.send(`${targetPlayer.name} has been removed from the adminlist`);
+              }
+              else {
+                  bot$$1.world.send(`${targetPlayer.name} was not on the adminlist`);
+              }
+              break;
+          case "BH.CLEARWHITELIST":
+              bot$$1.world.send("/CLEAR-WHITELIST");
+              bot$$1.world.send("Whitelist cleared.");
+              break;
+          case "BH.CLEARADMINLIST":
+              bot$$1.world.send("/CLEAR-ADMINLIST");
+              bot$$1.world.send("Adminlist cleared.");
+              break;
+          case "BH.CLEARMODLIST":
+              bot$$1.world.send("/CLEAR-MODLIST");
+              bot$$1.world.send("Modlist cleared.");
+              break;
+          case "BH.CLEARBLACKLIST":
+              bot$$1.world.send("/CLEAR-BLACKLIST");
+              bot$$1.world.send("Blacklist cleared.");
+              break;
+          case "BH.SETPRIVACY":
+              const privacy = args.toLocaleLowerCase();
+              if (["public", "searchable", "private"].includes(privacy)) {
+                  bot$$1.world.send(`/SET-PRIVACY ${privacy}`);
+                  bot$$1.world.send(`Privacy setting has changed to ${privacy}.`);
+              }
+              break;
+          case "BH.SETPASSWORD":
+              bot$$1.world.send(`/SET-PASSWORD ${args}`);
+              bot$$1.world.send("Password set.");
+              break;
+          case "BH.REMOVEPASSWORD":
+              if (overview.password) {
+                  bot$$1.world.send(`/REMOVE-PASSWORD ${args}`);
+                  bot$$1.world.send("Removed password.");
+              }
+              else {
+                  bot$$1.world.send("There was already no password set.");
+              }
+              break;
+      }
+  });
 
   const BlockheadPermissions = [
       {
@@ -907,7 +1215,7 @@
               admin: true
           },
           display: {
-              category: "Blockheads/Administrator Commands",
+              category: "Blockheads/World Commands",
               name: "Turn PVP on"
           }
       },
@@ -919,7 +1227,7 @@
               admin: true
           },
           display: {
-              category: "Blockheads/Administrator Commands",
+              category: "Blockheads/World Commands",
               name: "Turn PVP off"
           }
       },
@@ -1069,7 +1377,180 @@
       }
   ];
 
-  var callback$1 = (player, args, id) => {
+  const EXTENSION_ID$1 = "dapersonmgn/groupManagementBeta";
+  const helpMessages$1 = {
+      "GM.HELP": "/GM-HELP - displays this message",
+      "GM.CHECK": "/GM-CHECK command_name player_name - checks whether or not the player has a permission.",
+      "GM.USER": "/GM-USER player_name - displays all the permissions a user has, along with what groups the user is in",
+      "GM.GROUP": "/GM-GROUP group_name - display information about a group",
+      "GM.ADD": "/GM-ADD group_name player_name - adds a user to a group",
+      "GM.REMOVE": "/GM-REMOVE group_name player_name - removes a user from a group",
+      "GM.GSET": "/GM-GSET command_name value group_name - sets a group's permission to a value",
+      "GM.USET": "/GM-USET command_name value player_name - sets a user's permission to a value",
+      "GM.CREATE": "/GM-CREATE group_name - creates a group",
+      "GM.DESTORY": "/GM-DESTROY group_name - destroys a group",
+      "GM.LIST": "/GM-LIST group_name - view the last 50 players added to a group"
+  };
+  const callback$1 = (player, args, bot$$1, id) => {
+      const manager = bot$$1.getExports(EXTENSION_ID$1).manager;
+      const argsArr = args.split(" ");
+      const user = manager.users.get(player);
+      switch (id) {
+          case "GM.HELP":
+              let helpMessage = "\n";
+              for (const permissionID in helpMessages$1) {
+                  if (user.permissions.has(permissionID) || user.groups.some(group => group.permissions.has(permissionID))) {
+                      helpMessage += helpMessages$1[permissionID] + "\n";
+                  }
+              }
+              bot$$1.world.send(helpMessage);
+              break;
+          case "GM.CHECK":
+              if (argsArr.length < 2) {
+                  bot$$1.world.send(`You didn't specify enough arguments.\nExample: /GM-CHECK KICK PLAYER_NAME\nThis would check if PLAYER_NAME has permission to use the KICK command.`);
+              }
+              else {
+                  const [command, ...userArgs] = argsArr;
+                  const permissions = bot.MessageBot.extensions.map(extension => manager.permissions.getExtensionPermissions(extension)).reduce((pSetA, pSetB) => pSetA.concat(pSetB));
+                  const commandPermissions = permissions.filter(permission => permission.command.toLocaleUpperCase() === command.toLocaleUpperCase() || (permission.command.toLocaleUpperCase() === command.slice(1).toLocaleUpperCase() && command.startsWith("/")));
+                  const targetUser = manager.users.get(userArgs.join(" "));
+                  if (commandPermissions.some(permission => targetUser.permissions.has(permission) || Array.from(targetUser.groups).some(group => group.permissions.has(permission)))) {
+                      bot$$1.world.send(`${targetUser.name} has the ability to use the command ${command.toLocaleUpperCase()}`);
+                  }
+                  else {
+                      bot$$1.world.send(`${targetUser.name} cannot use the command ${command.toLocaleUpperCase()}`);
+                  }
+              }
+              break;
+          case "GM.USER":
+              if (argsArr.length < 1) {
+                  bot$$1.world.send("You didn't specify enough arguments.\nExample: /GM-USER PLAYER_NAME\nThis would display information about a user.");
+              }
+              else {
+                  const targetUser = manager.users.get(args);
+                  bot$$1.world.send(`\n${targetUser.name}\nHas user specific permissions to use:\n${Array.from(targetUser.permissions.allowed).map(id => `/${manager.permissions.get(id).command}`).join("\n")}\nIs in the groups:\n${targetUser.groups.map(group => group.name).join("\n")}`);
+              }
+              break;
+          case "GM.GROUP":
+              if (argsArr.length < 1) {
+                  bot$$1.world.send("You didn't specify enough arguments.\nExample: /GM-GROUP Anyone\nThis would display information about the Anyone group.");
+              }
+              else {
+                  const group = manager.groups.get(args);
+                  if (!group) {
+                      bot$$1.world.send("This group does not exist! Group names are CaSe SeNsItIvE!");
+                  }
+                  else {
+                      bot$$1.world.send(`${group.name}:\nPlayers: ${group.players.size}\nThis group can use the commands:\n${Array.from(group.permissions.allowed).map(id => `${manager.permissions.get(id).command}`).join(", ")}`);
+                  }
+              }
+              break;
+          case "GM.ADD":
+              if (argsArr.length < 2) {
+                  bot$$1.world.send("You didn't specify enough arguments.\nExample: /GM-ADD GROUP_NAME PLAYER_NAME\nThis would add PLAYER_NAME to GROUP_NAME");
+              }
+              else {
+                  const [groupName, ...playerNameArr] = argsArr;
+                  const group = manager.groups.get(groupName);
+                  if (!group) {
+                      bot$$1.world.send("This group does not exist! Group names are CaSe SeNsItIvE!");
+                  }
+                  else {
+                      const hasMorePermissions = Array.from(group.permissions.allowed).filter(id => user.permissions.has(id) || user.groups.some(group => group.permissions.has(id))).length > 0;
+                      if (hasMorePermissions && !player.isOwner) {
+                          bot$$1.world.send("This group has more permissions than you do! You cannot give this group to others!");
+                      }
+                      else if (group.managed) {
+                          bot$$1.world.send(`You cannot give other players the ${group.name} group! It is managed internally by the extension!`);
+                      }
+                      else {
+                          const playerName = playerNameArr.join(" ");
+                          if (group.addPlayer(playerName)) {
+                              bot$$1.world.send(`Added ${playerName.toLocaleUpperCase()} to ${group.name}.`);
+                          }
+                          else {
+                              bot$$1.world.send(`${playerName.toLocaleUpperCase()} is already in ${group.name}!`);
+                          }
+                      }
+                  }
+              }
+              break;
+          case "GM.REMOVE":
+              if (argsArr.length < 2) {
+                  bot$$1.world.send("You didn't specify enough arguments.\nExample: /GM-REMOVE GROUP_NAME PLAYER_NAME\nThis would remove PLAYER_NAME from GROUP_NAME");
+              }
+              else {
+                  const [groupName, ...playerNameArr] = argsArr;
+                  const group = manager.groups.get(groupName);
+                  if (!group) {
+                      bot$$1.world.send("This group does not exist! Group names are CaSe SeNsItIvE!");
+                  }
+                  else {
+                      const hasMorePermissions = Array.from(group.permissions.allowed).filter(id => user.permissions.has(id) || user.groups.some(group => group.permissions.has(id))).length > 0;
+                      if (hasMorePermissions && !player.isOwner) {
+                          bot$$1.world.send("This group has more permissions than you do! You cannot remove this group from others!");
+                      }
+                      else if (group.managed) {
+                          bot$$1.world.send(`You cannot remove ${group.name} from other players! It is managed internally by the extension!`);
+                      }
+                      else {
+                          const playerName = playerNameArr.join(" ");
+                          if (group.removePlayer(playerName)) {
+                              bot$$1.world.send(`Removed ${playerName.toLocaleUpperCase()} from ${group.name}.`);
+                          }
+                          else {
+                              bot$$1.world.send(`${playerName.toLocaleUpperCase()} was already not in ${group.name}!`);
+                          }
+                      }
+                  }
+              }
+              break;
+          case "GM.GSET":
+              if (argsArr.length < 3) {
+                  bot$$1.world.send("You didn't specify enough arguments.\nExample: /GM-GSET COMMAND_NAME 1 GROUP_NAME\nThis would set any permission that can be activated by /COMMAND_NAME to true of the group GROUP_NAME. Alternatively if you wish to disable a permission, replace 1 with 0.");
+              }
+              else {
+                  const [command, value, ...groupNameArr] = argsArr;
+                  const groupName = groupNameArr.join(" ");
+                  const group = manager.groups.get(groupName);
+                  if (!group) {
+                      bot$$1.world.send("This group does not exist! Group names are CaSe SeNsItIvE!");
+                  }
+                  else {
+                      if (!["1", "0"].includes(value)) {
+                          bot$$1.world.send("The value MUST be either 1 or 0.");
+                      }
+                      else {
+                          const permissions = bot.MessageBot.extensions.map(extension => manager.permissions.getExtensionPermissions(extension)).reduce((pSetA, pSetB) => pSetA.concat(pSetB));
+                          const commandPermissions = permissions.filter(permission => permission.command.toLocaleUpperCase() === command.toLocaleUpperCase() || (permission.command.toLocaleUpperCase() === command.slice(1).toLocaleUpperCase() && command.startsWith("/")));
+                          if (commandPermissions.length === 0) {
+                              bot$$1.world.send(`There is no registered command by the name of ${command.startsWith("/") ? command.toLocaleUpperCase() : `/${command.toLocaleUpperCase()}`}`);
+                          }
+                          else {
+                              if (value === "1") {
+                                  for (const permission of commandPermissions)
+                                      group.permissions.add(permission);
+                                  bot$$1.world.send(`\n${command.startsWith("/") ? command.toLocaleUpperCase() : `/${command.toLocaleUpperCase()}`} is now enabled for the group ${group.name}.`);
+                              }
+                              else {
+                                  for (const permission of commandPermissions)
+                                      group.permissions.delete(permission);
+                                  bot$$1.world.send(`\n${command.startsWith("/") ? command.toLocaleUpperCase() : `/${command.toLocaleUpperCase()}`} is now disabled for the group ${group.name}.`);
+                              }
+                          }
+                      }
+                  }
+              }
+              break;
+          case "GM.USET":
+              break;
+          case "GM.CREATE":
+              break;
+          case "GM.DESTROY":
+              break;
+          case "GM.LIST":
+              break;
+      }
   };
 
   const GroupManagementPermissions = [
@@ -1088,7 +1569,7 @@
           command: "GM-CHECK",
           display: {
               category: "Group Management/General Commands",
-              name: "Check if a player has a permission with /GM-check"
+              name: "Check if a player has permission to use a command with /GM-check"
           }
       },
       {
@@ -1174,8 +1655,8 @@
       }
   ];
 
-  const EXTENSION_ID = "dapersonmgn/groupManagementBeta";
-  bot.MessageBot.registerExtension(EXTENSION_ID, ex => {
+  const EXTENSION_ID$2 = "dapersonmgn/groupManagementBeta";
+  bot.MessageBot.registerExtension(EXTENSION_ID$2, ex => {
       const GM = new GroupManagement(ex);
       for (const permission of BlockheadPermissions) {
           const { id, command, callback, ignore } = permission;
@@ -1184,7 +1665,7 @@
               command,
               callback,
               ignore,
-              extension: EXTENSION_ID,
+              extension: EXTENSION_ID$2,
               category: permission.display.category,
               name: permission.display.name
           });
@@ -1196,7 +1677,7 @@
               command,
               callback,
               ignore,
-              extension: EXTENSION_ID,
+              extension: EXTENSION_ID$2,
               category: permission.display.category,
               name: permission.display.name
           });
