@@ -30,32 +30,34 @@ class UI {
   }
 
   addPermission (permission : Permission) {
-    const [parentCategory, subCategory] = permission.category.split("/");
-    const groups = this.management.groups.get() as Map<number, Group>;
-    for (const [, group] of groups) {
-      const tab = group.tab as HTMLDivElement;
-      if (!tab.querySelector(`p[data-category="${parentCategory}"]`)) {
-        //Parent category does not exist, we need to create it.
-        (tab.querySelector(".menu") as HTMLElement).innerHTML += `<p class="menu-label is-unselectable" data-category="${parentCategory}">${parentCategory}</p><ul class="menu-list" data-category="${parentCategory}"></ul>`;
-      }
-      if (!tab.querySelector(`ul[data-category="${parentCategory}"] > li > a[data-subcategory="${subCategory}"]`)) {
-          //Subcategory doesn't exist, create it.
-          const listEl = tab.querySelector(`ul[data-category="${parentCategory}"]`) as HTMLUListElement;
-          listEl.innerHTML += `<li><a href="#" class="is-unselectable" data-subcategory="${subCategory}">${subCategory}</a></li>`;
-          (listEl.querySelector(`a[data-subcategory="${subCategory}"]`) as HTMLLinkElement).addEventListener("click",  event => this.subcategoryListener(event, group));
-          (tab.querySelectorAll(".box")[1] as HTMLDivElement).innerHTML += `<div data-subcategory="${subCategory}" data-category="${parentCategory}" class="is-invisible" style="display: none;"><div class="columns" style="padding-top: 2.5%;"><div class="column"></div><div class="column"></div><div class="column"></div></div></div>`;
-      }
-      //Add the permission to it's tab.
-      
-      const columns = Array.from(tab.querySelectorAll(`div[data-subcategory="${subCategory}"][data-category="${parentCategory}"] .column`)) as HTMLDivElement[];
-      const col = columns.sort((colA, colB) => colA.querySelectorAll("input[data-permission]").length - colB.querySelectorAll("input[data-permission]").length)[0];
-      col.innerHTML += permissionHTML
-        .replace("{ID}", permission.id)
-        .replace("{PERMISSION}", permission.name)
-        .replace("{ALLOWED}", group.permissions.has(permission) ? "checked " : "")
-        .replace("{DISABLED}", group.permissions.disabled.has(permission.id) ? "disabled" : "");
-
-      (tab.querySelector(`a[data-subcategory="${subCategory}"]`) as HTMLLinkElement).click();
+    if (this._ui) {
+      const [parentCategory, subCategory] = permission.category.split("/");
+      const groups = this.management.groups.get() as Map<number, Group>;
+      for (const [, group] of groups) {
+        const tab = group.tab as HTMLDivElement;
+        if (!tab.querySelector(`p[data-category="${parentCategory}"]`)) {
+          //Parent category does not exist, we need to create it.
+          (tab.querySelector(".menu") as HTMLElement).innerHTML += `<p class="menu-label is-unselectable" data-category="${parentCategory}">${parentCategory}</p><ul class="menu-list" data-category="${parentCategory}"></ul>`;
+        }
+        if (!tab.querySelector(`ul[data-category="${parentCategory}"] > li > a[data-subcategory="${subCategory}"]`)) {
+            //Subcategory doesn't exist, create it.
+            const listEl = tab.querySelector(`ul[data-category="${parentCategory}"]`) as HTMLUListElement;
+            listEl.innerHTML += `<li><a href="#" class="is-unselectable" data-subcategory="${subCategory}">${subCategory}</a></li>`;
+            (listEl.querySelector(`a[data-subcategory="${subCategory}"]`) as HTMLLinkElement).addEventListener("click",  event => this.subcategoryListener(event, group));
+            (tab.querySelectorAll(".box")[1] as HTMLDivElement).innerHTML += `<div data-subcategory="${subCategory}" data-category="${parentCategory}" class="is-invisible" style="display: none;"><div class="columns" style="padding-top: 2.5%;"><div class="column"></div><div class="column"></div><div class="column"></div></div></div>`;
+        }
+        //Add the permission to it's tab.
+        
+        const columns = Array.from(tab.querySelectorAll(`div[data-subcategory="${subCategory}"][data-category="${parentCategory}"] .column`)) as HTMLDivElement[];
+        const col = columns.sort((colA, colB) => colA.querySelectorAll("input[data-permission]").length - colB.querySelectorAll("input[data-permission]").length)[0];
+        col.innerHTML += permissionHTML
+          .replace("{ID}", permission.id)
+          .replace("{PERMISSION}", permission.name)
+          .replace("{ALLOWED}", group.permissions.has(permission) ? "checked " : "")
+          .replace("{DISABLED}", group.permissions.disabled.has(permission.id) ? "disabled" : "");
+  
+        (tab.querySelector(`a[data-subcategory="${subCategory}"]`) as HTMLLinkElement).click();
+    }
     }
   }
 

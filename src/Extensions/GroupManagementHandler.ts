@@ -46,9 +46,9 @@ export const callback = (player : Player, args : string, bot : MessageBot, id : 
         const commandPermissions = permissions.filter(permission => permission.command.toLocaleUpperCase() === command.toLocaleUpperCase() || (permission.command.toLocaleUpperCase() === command.slice(1).toLocaleUpperCase() && command.startsWith("/")));
         const targetUser = manager.users.get(userArgs.join(" "));
         if (commandPermissions.some(permission => targetUser.permissions.has(permission) || Array.from(targetUser.groups).some(group => group.permissions.has(permission)))) {
-          bot.world.send(`${targetUser.name} has the ability to use the command ${command.toLocaleUpperCase()}`);
+          bot.world.send(`\n${targetUser.name} has the ability to use the command ${command.toLocaleUpperCase()}`);
         } else {
-          bot.world.send(`${targetUser.name} cannot use the command ${command.toLocaleUpperCase()}`);
+          bot.world.send(`\n${targetUser.name} cannot use the command ${command.toLocaleUpperCase()}`);
         }
       }
     break;
@@ -70,7 +70,7 @@ export const callback = (player : Player, args : string, bot : MessageBot, id : 
         if (!group) {
           bot.world.send("This group does not exist! Group names are CaSe SeNsItIvE!");
         } else {
-          bot.world.send(`${group.name}:\nPlayers: ${group.players.size}\nThis group can use the commands:\n${Array.from(group.permissions.allowed).map(id => `${(manager.permissions.get(id) as Permission).command}`).join(", ")}`);
+          bot.world.send(`\n${group.name}:\nPlayers: ${group.players.size}\nThis group can use the commands:\n${Array.from(group.permissions.allowed).map(id => `${(manager.permissions.get(id) as Permission).command}`).join(", ")}`);
         }
       }
     break;
@@ -94,7 +94,7 @@ export const callback = (player : Player, args : string, bot : MessageBot, id : 
             if (group.addPlayer(playerName)) {
               bot.world.send(`Added ${playerName.toLocaleUpperCase()} to ${group.name}.`)
             } else {
-              bot.world.send(`${playerName.toLocaleUpperCase()} is already in ${group.name}!`);
+              bot.world.send(`\n${playerName.toLocaleUpperCase()} is already in ${group.name}!`);
             }
           }
         }
@@ -120,7 +120,7 @@ export const callback = (player : Player, args : string, bot : MessageBot, id : 
             if (group.removePlayer(playerName)) {
               bot.world.send(`Removed ${playerName.toLocaleUpperCase()} from ${group.name}.`)
             } else {
-              bot.world.send(`${playerName.toLocaleUpperCase()} was already not in ${group.name}!`);
+              bot.world.send(`\n${playerName.toLocaleUpperCase()} was already not in ${group.name}!`);
             }
           }
         } 
@@ -129,7 +129,7 @@ export const callback = (player : Player, args : string, bot : MessageBot, id : 
 
     case "GM.GSET":
       if (argsArr.length < 3) {
-        bot.world.send("You didn't specify enough arguments.\nExample: /GM-GSET COMMAND_NAME 1 GROUP_NAME\nThis would set any permission that can be activated by /COMMAND_NAME to true of the group GROUP_NAME. Alternatively if you wish to disable a permission, replace 1 with 0.");
+        bot.world.send("You didn't specify enough arguments.\nExample: /GM-GSET COMMAND_NAME 1 GROUP_NAME\nThis would set any permission that can be activated by /COMMAND_NAME to true of the group GROUP_NAME. Alternatively if you wish to disable a permission already true, replace 1 with 0.");
       } else {
         const [command, value, ...groupNameArr] = argsArr;
         const groupName = groupNameArr.join(" ");
@@ -159,19 +159,69 @@ export const callback = (player : Player, args : string, bot : MessageBot, id : 
     break;
 
     case "GM.USET":
-
+      if (argsArr.length < 3) {
+        bot.world.send("You didn't specify enough arguments.\nExample: /GM-USET COMMAND_NAME 1 PLAYER_NAME\nThis would set any permission that can be activated by /COMMAND_NAME to true of the user PLAYER_NAME. Alternatively if you wish to disable a permission already true, replace 1 with 0.");
+      } else {
+        const [command, value, ...playerNameArr] = argsArr;
+        const userName = playerNameArr.join(" ");
+        const user = manager.users.get(userName);
+        if (!["1", "0"].includes(value)) {
+          bot.world.send("The value MUST be either 1 or 0.");
+        } else {
+          const permissions = MessageBot.extensions.map(extension => manager.permissions.getExtensionPermissions(extension)).reduce((pSetA, pSetB) => pSetA.concat(pSetB));
+          const commandPermissions = permissions.filter(permission => permission.command.toLocaleUpperCase() === command.toLocaleUpperCase() || (permission.command.toLocaleUpperCase() === command.slice(1).toLocaleUpperCase() && command.startsWith("/")));
+          if (value === "1") {
+            user.permissions.add(commandPermissions[0]);
+            bot.world.send(`\n${command.startsWith("/") ? command.toLocaleUpperCase() : `/${command.toLocaleUpperCase()}`} is now enabled for the user ${user.name}.`);
+          } else {
+            user.permissions.delete(commandPermissions[0]);
+            bot.world.send(`\n${command.startsWith("/") ? command.toLocaleUpperCase() : `/${command.toLocaleUpperCase()}`} is now disabled for the user ${user.name}.`);
+          }
+        }
+        
+      }
     break;
     
     case "GM.CREATE":
-
+      if (argsArr.length < 1) {
+        bot.world.send("You didn't specify enough arguments.\nExample: /GM-CREATE TEST\nThis would create a group named TEST. Groups are CaSe SeNsItIvE and cannot contain spaces!");
+      } else {
+        if (manager.groups.get(args)) {
+          bot.world.send("This group already exists! Choose another name.");
+        } else if (args.includes(" ")) {
+          bot.world.send("Group names cannot include spaces!");
+        } else {
+          manager.groups.add({ name: args });
+          bot.world.send(`The group ${args} was created!`);
+        }
+      }
     break;
 
     case "GM.DESTROY":
-
+      if (argsArr.length < 1) {
+        bot.world.send("You didn't specify enough arguments.\nExample: /GM-DESTROY TEST\nThis would delete any group named TEST. Groups are CaSe SeNsItIvE!");
+      } else {
+        const group = manager.groups.get(args) as Group;
+        if (group) {
+          group.delete();
+          bot.world.send(`Deleted the group ${group.name}.`);
+        } else {
+          bot.world.send("This group does not exist.");
+        }
+      }
     break;
 
     case "GM.LIST":
-
+      if (argsArr.length < 1) {
+        bot.world.send("You didn't specify enough arguments.\nExample: /GM-LIST TEST\nThis would list the last 50 players of the group TEST.");
+      } else {
+        const group = manager.groups.get(args) as Group;
+        if (group) {
+          bot.world.send(`\n${group.name}:\n${Array.from(group.players).slice(-50).reverse().map(player => player.name).join(", ")}`);
+        } else {
+          bot.world.send("This group does not exist.");
+        }
+      }
     break;
   }
 };
