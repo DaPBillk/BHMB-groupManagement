@@ -3,7 +3,7 @@ import { GroupManagement } from "../GroupManagement";
 import { Permission } from "../Permissions/Permission";
 import { Group } from "../Groups/Group";
 
-const EXTENSION_ID = "dapersonmgn/groupManagementBeta";
+const EXTENSION_ID = "dapersonmgn/groupManagement";
 
 const helpMessages : {
   [key: string] : string

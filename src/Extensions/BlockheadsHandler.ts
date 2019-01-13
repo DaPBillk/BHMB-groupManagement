@@ -1,7 +1,7 @@
 import { Player, MessageBot } from "@bhmb/bot";
 import { GroupManagement } from "../GroupManagement";
 
-const EXTENSION_ID = "dapersonmgn/groupManagementBeta";
+const EXTENSION_ID = "dapersonmgn/groupManagement";
 
 const helpMessages : {
   [key: string] : string
