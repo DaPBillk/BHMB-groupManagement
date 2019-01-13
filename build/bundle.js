@@ -766,13 +766,13 @@
       "BH.UNMOD": "/UNMOD player_name - removes player_name from the modlist.",
       "BH.ADMIN": "/ADMIN player_name - adds player_name to the adminlist, allowing them to issue server commands via chat.",
       "BH.UNADMIN": "/UNADMIN player_name - removes player_name from the adminlist.",
-      "BH.CLEARBLACKLIST": "/CLEAR-BLACKLIST - removes all names from the blacklist.",
-      "BH.CLEARWHITELIST": "/CLEAR-WHITELIST - removes all names from the whitelist.",
-      "BH.CLEARMODLIST": "/CLEAR-MODLIST - removes all names from the modlist.",
-      "BH.CLEARADMINLIST": "/CLEAR-ADMINLIST - removes all names from the adminlist.",
-      "BH.SETPASSWORD": "/SET-PASSWORD password - sets a new password, which all players except the owner must use in order to connect.",
-      "BH.REMOVEPASSWORD": "/REMOVE-PASSWORD - removes the password, so all players may connect.",
-      "BH.SETPRIVACY": "/SET-PRIVACY public/searchable/private - changes the privacy setting."
+      "BH.CLEAR_BLACKLIST": "/CLEAR-BLACKLIST - removes all names from the blacklist.",
+      "BH.CLEAR_WHITELIST": "/CLEAR-WHITELIST - removes all names from the whitelist.",
+      "BH.CLEAR_MODLIST": "/CLEAR-MODLIST - removes all names from the modlist.",
+      "BH.CLEAR_ADMINLIST": "/CLEAR-ADMINLIST - removes all names from the adminlist.",
+      "BH.SET_PASSWORD": "/SET-PASSWORD password - sets a new password, which all players except the owner must use in order to connect.",
+      "BH.REMOVE_PASSWORD": "/REMOVE-PASSWORD - removes the password, so all players may connect.",
+      "BH.SET_PRIVACY": "/SET-PRIVACY public/searchable/private - changes the privacy setting."
   };
   const callback = (player, args, bot$$1, id) => __awaiter(undefined, void 0, void 0, function* () {
       const manager = bot$$1.getExports(EXTENSION_ID).manager;
@@ -941,34 +941,34 @@
                   bot$$1.world.send(`${targetPlayer.name} was not on the adminlist`);
               }
               break;
-          case "BH.CLEARWHITELIST":
+          case "BH.CLEAR_WHITELIST":
               bot$$1.world.send("/CLEAR-WHITELIST");
               bot$$1.world.send("Whitelist cleared.");
               break;
-          case "BH.CLEARADMINLIST":
+          case "BH.CLEAR_ADMINLIST":
               bot$$1.world.send("/CLEAR-ADMINLIST");
               bot$$1.world.send("Adminlist cleared.");
               break;
-          case "BH.CLEARMODLIST":
+          case "BH.CLEAR_MODLIST":
               bot$$1.world.send("/CLEAR-MODLIST");
               bot$$1.world.send("Modlist cleared.");
               break;
-          case "BH.CLEARBLACKLIST":
+          case "BH.CLEAR_BLACKLIST":
               bot$$1.world.send("/CLEAR-BLACKLIST");
               bot$$1.world.send("Blacklist cleared.");
               break;
-          case "BH.SETPRIVACY":
+          case "BH.SET_PRIVACY":
               const privacy = args.toLocaleLowerCase();
               if (["public", "searchable", "private"].includes(privacy)) {
                   bot$$1.world.send(`/SET-PRIVACY ${privacy}`);
                   bot$$1.world.send(`Privacy setting has changed to ${privacy}.`);
               }
               break;
-          case "BH.SETPASSWORD":
+          case "BH.SET_PASSWORD":
               bot$$1.world.send(`/SET-PASSWORD ${args}`);
               bot$$1.world.send("Password set.");
               break;
-          case "BH.REMOVEPASSWORD":
+          case "BH.REMOVE_PASSWORD":
               if (overview.password) {
                   bot$$1.world.send(`/REMOVE-PASSWORD ${args}`);
                   bot$$1.world.send("Removed password.");
@@ -1295,7 +1295,7 @@
       },
       {
           callback,
-          id: "BH.CLEARBLACKLIST",
+          id: "BH.CLEAR_BLACKLIST",
           command: "CLEAR-BLACKLIST",
           ignore: {
               admin: true
@@ -1307,7 +1307,7 @@
       },
       {
           callback,
-          id: "BH.CLEARWHITELIST",
+          id: "BH.CLEAR_WHITELIST",
           command: "CLEAR-WHITELIST",
           ignore: {
               admin: true
@@ -1319,7 +1319,7 @@
       },
       {
           callback,
-          id: "BH.CLEARMODLIST",
+          id: "BH.CLEAR_MODLIST",
           command: "CLEAR-MODLIST",
           ignore: {
               admin: true
@@ -1331,7 +1331,7 @@
       },
       {
           callback,
-          id: "BH.CLEARADMINLIST",
+          id: "BH.CLEAR_ADMINLIST",
           command: "CLEAR-ADMINLIST",
           ignore: {
               admin: true
@@ -1343,7 +1343,7 @@
       },
       {
           callback,
-          id: "BH.SETPASSWORD",
+          id: "BH.SET_PASSWORD",
           command: "SET-PASSWORD",
           ignore: {
               owner: true
@@ -1355,7 +1355,7 @@
       },
       {
           callback,
-          id: "BH.SETPRIVACY",
+          id: "BH.SET_PRIVACY",
           command: "SET-PRIVACY",
           ignore: {
               owner: true
@@ -1367,7 +1367,7 @@
       },
       {
           callback,
-          id: "BH.REMOVEPASSWORD",
+          id: "BH.REMOVE_PASSWORD",
           command: "REMOVE-PASSWORD",
           ignore: {
               owner: true
@@ -1749,8 +1749,8 @@
           GM.groups.add({
               name: "Administrator",
               permissions: {
-                  allowed: ["BH.HELP", "BH.PLAYERS", "BH.KICK_MOD", "BH.KICK_ADMIN", "BH.KICK", "BH.BAN_MOD", "BH.BAN_ADMIN", "BH.BAN", "BH.BAN_NO_DEVICE_MOD", "BH.BAN_NO_DEVICE_ADMIN", "BH.BAN_NO_DEVICE", "BH.UNBAN", "BH.WHITELIST", "BH.UNWHITELIST", "BH.LIST_MODLIST", "BH.LIST_BLACKLIST", "BH.LIST_WHITELIST", "BH.LIST_ADMINLIST", "BH.LOADLISTS", "BH.STOP", "BH.PVPON", "BH.PVPOFF", "BH.MOD", "BH.UNMOD", "BH.ADMIN", "BH.UNADMIN", "BH.CLEARMODLIST", "BH.CLEARADMINLIST", "BH.CLEARWHITELIST", "BH.CLEARBLACKLIST"],
-                  disabled: ["BH.HELP", "BH.PLAYERS", "BH.KICK_MOD", "BH.KICK_ADMIN", "BH.KICK", "BH.BAN_MOD", "BH.BAN_ADMIN", "BH.BAN", "BH.BAN_NO_DEVICE_MOD", "BH.BAN_NO_DEVICE_ADMIN", "BH.BAN_NO_DEVICE", "BH.UNBAN", "BH.WHITELIST", "BH.UNWHITELIST", "BH.LIST_MODLIST", "BH.LIST_BLACKLIST", "BH.LIST_WHITELIST", "BH.LIST_ADMINLIST", "BH.LOADLISTS", "BH.STOP", "BH.PVPON", "BH.PVPOFF", "BH.MOD", "BH.UNMOD", "BH.ADMIN", "BH.UNADMIN", "BH.CLEARMODLIST", "BH.CLEARADMINLIST", "BH.CLEARWHITELIST", "BH.CLEARBLACKLIST"]
+                  allowed: ["BH.HELP", "BH.PLAYERS", "BH.KICK_MOD", "BH.KICK_ADMIN", "BH.KICK", "BH.BAN_MOD", "BH.BAN_ADMIN", "BH.BAN", "BH.BAN_NO_DEVICE_MOD", "BH.BAN_NO_DEVICE_ADMIN", "BH.BAN_NO_DEVICE", "BH.UNBAN", "BH.WHITELIST", "BH.UNWHITELIST", "BH.LIST_MODLIST", "BH.LIST_BLACKLIST", "BH.LIST_WHITELIST", "BH.LIST_ADMINLIST", "BH.LOADLISTS", "BH.STOP", "BH.PVPON", "BH.PVPOFF", "BH.MOD", "BH.UNMOD", "BH.ADMIN", "BH.UNADMIN", "BH.CLEAR_MODLIST", "BH.CLEAR_ADMINLIST", "BH.CLEAR_WHITELIST", "BH.CLEAR_BLACKLIST"],
+                  disabled: ["BH.HELP", "BH.PLAYERS", "BH.KICK_MOD", "BH.KICK_ADMIN", "BH.KICK", "BH.BAN_MOD", "BH.BAN_ADMIN", "BH.BAN", "BH.BAN_NO_DEVICE_MOD", "BH.BAN_NO_DEVICE_ADMIN", "BH.BAN_NO_DEVICE", "BH.UNBAN", "BH.WHITELIST", "BH.UNWHITELIST", "BH.LIST_MODLIST", "BH.LIST_BLACKLIST", "BH.LIST_WHITELIST", "BH.LIST_ADMINLIST", "BH.LOADLISTS", "BH.STOP", "BH.PVPON", "BH.PVPOFF", "BH.MOD", "BH.UNMOD", "BH.ADMIN", "BH.UNADMIN", "BH.CLEAR_MODLIST", "BH.CLEAR_ADMINLIST", "BH.CLEAR_WHITELIST", "BH.CLEAR_BLACKLIST"]
               },
               managed: true
           });
