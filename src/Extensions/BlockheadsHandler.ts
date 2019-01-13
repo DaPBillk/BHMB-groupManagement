@@ -25,13 +25,13 @@ const helpMessages : {
   "BH.UNMOD": "/UNMOD player_name - removes player_name from the modlist.",
   "BH.ADMIN": "/ADMIN player_name - adds player_name to the adminlist, allowing them to issue server commands via chat.",
   "BH.UNADMIN": "/UNADMIN player_name - removes player_name from the adminlist.",
-  "BH.CLEARBLACKLIST": "/CLEAR-BLACKLIST - removes all names from the blacklist.",
-  "BH.CLEARWHITELIST": "/CLEAR-WHITELIST - removes all names from the whitelist.",
-  "BH.CLEARMODLIST": "/CLEAR-MODLIST - removes all names from the modlist.",
-  "BH.CLEARADMINLIST": "/CLEAR-ADMINLIST - removes all names from the adminlist.",
-  "BH.SETPASSWORD": "/SET-PASSWORD password - sets a new password, which all players except the owner must use in order to connect.",
-  "BH.REMOVEPASSWORD": "/REMOVE-PASSWORD - removes the password, so all players may connect.",
-  "BH.SETPRIVACY": "/SET-PRIVACY public/searchable/private - changes the privacy setting."
+  "BH.CLEAR_BLACKLIST": "/CLEAR-BLACKLIST - removes all names from the blacklist.",
+  "BH.CLEAR_WHITELIST": "/CLEAR-WHITELIST - removes all names from the whitelist.",
+  "BH.CLEAR_MODLIST": "/CLEAR-MODLIST - removes all names from the modlist.",
+  "BH.CLEAR_ADMINLIST": "/CLEAR-ADMINLIST - removes all names from the adminlist.",
+  "BH.SET_PASSWORD": "/SET-PASSWORD password - sets a new password, which all players except the owner must use in order to connect.",
+  "BH.REMOVE_PASSWORD": "/REMOVE-PASSWORD - removes the password, so all players may connect.",
+  "BH.SET_PRIVACY": "/SET-PRIVACY public/searchable/private - changes the privacy setting."
 };
 
 export const callback = async (player : Player, args : string, bot : MessageBot, id : string) => {
@@ -206,24 +206,24 @@ export const callback = async (player : Player, args : string, bot : MessageBot,
       }
     break;
 
-    case "BH.CLEARWHITELIST":
+    case "BH.CLEAR_WHITELIST":
       bot.world.send("/CLEAR-WHITELIST");
       bot.world.send("Whitelist cleared.");
     break;
-    case "BH.CLEARADMINLIST":
+    case "BH.CLEAR_ADMINLIST":
       bot.world.send("/CLEAR-ADMINLIST");
       bot.world.send("Adminlist cleared.");
     break;
-    case "BH.CLEARMODLIST":
+    case "BH.CLEAR_MODLIST":
       bot.world.send("/CLEAR-MODLIST");
       bot.world.send("Modlist cleared.");
     break;
-    case "BH.CLEARBLACKLIST":
+    case "BH.CLEAR_BLACKLIST":
       bot.world.send("/CLEAR-BLACKLIST");
       bot.world.send("Blacklist cleared.");
     break;
     
-    case "BH.SETPRIVACY":
+    case "BH.SET_PRIVACY":
       const privacy = args.toLocaleLowerCase();
       if (["public", "searchable", "private"].includes(privacy)) {
         bot.world.send(`/SET-PRIVACY ${privacy}`);
@@ -231,11 +231,11 @@ export const callback = async (player : Player, args : string, bot : MessageBot,
       }
     break;
 
-    case "BH.SETPASSWORD":
+    case "BH.SET_PASSWORD":
       bot.world.send(`/SET-PASSWORD ${args}`);
       bot.world.send("Password set.");
     break;
-    case "BH.REMOVEPASSWORD":
+    case "BH.REMOVE_PASSWORD":
       if (overview.password) {
         bot.world.send(`/REMOVE-PASSWORD ${args}`);
         bot.world.send("Removed password.");

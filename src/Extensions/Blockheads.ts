@@ -323,7 +323,7 @@ export const BlockheadPermissions : BlockheadExtensionPermission[] =  [
   },
   {
     callback,
-    id: "BH.CLEARBLACKLIST",
+    id: "BH.CLEAR_BLACKLIST",
     command: "CLEAR-BLACKLIST",
     ignore: {
       admin: true
@@ -335,7 +335,7 @@ export const BlockheadPermissions : BlockheadExtensionPermission[] =  [
   },
   {
     callback,
-    id: "BH.CLEARWHITELIST",
+    id: "BH.CLEAR_WHITELIST",
     command: "CLEAR-WHITELIST",
     ignore: {
       admin: true
@@ -347,7 +347,7 @@ export const BlockheadPermissions : BlockheadExtensionPermission[] =  [
   },
   {
     callback,
-    id: "BH.CLEARMODLIST",
+    id: "BH.CLEAR_MODLIST",
     command: "CLEAR-MODLIST",
     ignore: {
       admin: true
@@ -359,7 +359,7 @@ export const BlockheadPermissions : BlockheadExtensionPermission[] =  [
   },
   {
     callback,
-    id: "BH.CLEARADMINLIST",
+    id: "BH.CLEAR_ADMINLIST",
     command: "CLEAR-ADMINLIST",
     ignore: {
       admin: true
@@ -371,7 +371,7 @@ export const BlockheadPermissions : BlockheadExtensionPermission[] =  [
   },
   {
     callback,
-    id: "BH.SETPASSWORD",
+    id: "BH.SET_PASSWORD",
     command: "SET-PASSWORD",
     ignore: {
       owner: true
@@ -383,7 +383,7 @@ export const BlockheadPermissions : BlockheadExtensionPermission[] =  [
   },
   {
     callback,
-    id: "BH.SETPRIVACY",
+    id: "BH.SET_PRIVACY",
     command: "SET-PRIVACY",
     ignore: {
       owner: true
@@ -395,7 +395,7 @@ export const BlockheadPermissions : BlockheadExtensionPermission[] =  [
   },
   {
     callback,
-    id: "BH.REMOVEPASSWORD",
+    id: "BH.REMOVE_PASSWORD",
     command: "REMOVE-PASSWORD",
     ignore: {
       owner: true
