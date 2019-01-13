@@ -484,30 +484,32 @@
           }
       }
       addPermission(permission) {
-          const [parentCategory, subCategory] = permission.category.split("/");
-          const groups = this.management.groups.get();
-          for (const [, group] of groups) {
-              const tab = group.tab;
-              if (!tab.querySelector(`p[data-category="${parentCategory}"]`)) {
-                  //Parent category does not exist, we need to create it.
-                  tab.querySelector(".menu").innerHTML += `<p class="menu-label is-unselectable" data-category="${parentCategory}">${parentCategory}</p><ul class="menu-list" data-category="${parentCategory}"></ul>`;
+          if (this._ui) {
+              const [parentCategory, subCategory] = permission.category.split("/");
+              const groups = this.management.groups.get();
+              for (const [, group] of groups) {
+                  const tab = group.tab;
+                  if (!tab.querySelector(`p[data-category="${parentCategory}"]`)) {
+                      //Parent category does not exist, we need to create it.
+                      tab.querySelector(".menu").innerHTML += `<p class="menu-label is-unselectable" data-category="${parentCategory}">${parentCategory}</p><ul class="menu-list" data-category="${parentCategory}"></ul>`;
+                  }
+                  if (!tab.querySelector(`ul[data-category="${parentCategory}"] > li > a[data-subcategory="${subCategory}"]`)) {
+                      //Subcategory doesn't exist, create it.
+                      const listEl = tab.querySelector(`ul[data-category="${parentCategory}"]`);
+                      listEl.innerHTML += `<li><a href="#" class="is-unselectable" data-subcategory="${subCategory}">${subCategory}</a></li>`;
+                      listEl.querySelector(`a[data-subcategory="${subCategory}"]`).addEventListener("click", event => this.subcategoryListener(event, group));
+                      tab.querySelectorAll(".box")[1].innerHTML += `<div data-subcategory="${subCategory}" data-category="${parentCategory}" class="is-invisible" style="display: none;"><div class="columns" style="padding-top: 2.5%;"><div class="column"></div><div class="column"></div><div class="column"></div></div></div>`;
+                  }
+                  //Add the permission to it's tab.
+                  const columns = Array.from(tab.querySelectorAll(`div[data-subcategory="${subCategory}"][data-category="${parentCategory}"] .column`));
+                  const col = columns.sort((colA, colB) => colA.querySelectorAll("input[data-permission]").length - colB.querySelectorAll("input[data-permission]").length)[0];
+                  col.innerHTML += permissionHTML
+                      .replace("{ID}", permission.id)
+                      .replace("{PERMISSION}", permission.name)
+                      .replace("{ALLOWED}", group.permissions.has(permission) ? "checked " : "")
+                      .replace("{DISABLED}", group.permissions.disabled.has(permission.id) ? "disabled" : "");
+                  tab.querySelector(`a[data-subcategory="${subCategory}"]`).click();
               }
-              if (!tab.querySelector(`ul[data-category="${parentCategory}"] > li > a[data-subcategory="${subCategory}"]`)) {
-                  //Subcategory doesn't exist, create it.
-                  const listEl = tab.querySelector(`ul[data-category="${parentCategory}"]`);
-                  listEl.innerHTML += `<li><a href="#" class="is-unselectable" data-subcategory="${subCategory}">${subCategory}</a></li>`;
-                  listEl.querySelector(`a[data-subcategory="${subCategory}"]`).addEventListener("click", event => this.subcategoryListener(event, group));
-                  tab.querySelectorAll(".box")[1].innerHTML += `<div data-subcategory="${subCategory}" data-category="${parentCategory}" class="is-invisible" style="display: none;"><div class="columns" style="padding-top: 2.5%;"><div class="column"></div><div class="column"></div><div class="column"></div></div></div>`;
-              }
-              //Add the permission to it's tab.
-              const columns = Array.from(tab.querySelectorAll(`div[data-subcategory="${subCategory}"][data-category="${parentCategory}"] .column`));
-              const col = columns.sort((colA, colB) => colA.querySelectorAll("input[data-permission]").length - colB.querySelectorAll("input[data-permission]").length)[0];
-              col.innerHTML += permissionHTML
-                  .replace("{ID}", permission.id)
-                  .replace("{PERMISSION}", permission.name)
-                  .replace("{ALLOWED}", group.permissions.has(permission) ? "checked " : "")
-                  .replace("{DISABLED}", group.permissions.disabled.has(permission.id) ? "disabled" : "");
-              tab.querySelector(`a[data-subcategory="${subCategory}"]`).click();
           }
       }
       addGroup(group) {
@@ -743,7 +745,7 @@
       });
   }
 
-  const EXTENSION_ID = "dapersonmgn/groupManagementBeta";
+  const EXTENSION_ID = "dapersonmgn/groupManagement";
   const helpMessages = {
       "BH.HELP": "/HELP - display this message.",
       "BH.PLAYERS": "/PLAYERS - list currently active players.",
@@ -1377,7 +1379,7 @@
       }
   ];
 
-  const EXTENSION_ID$1 = "dapersonmgn/groupManagementBeta";
+  const EXTENSION_ID$1 = "dapersonmgn/groupManagement";
   const helpMessages$1 = {
       "GM.HELP": "/GM-HELP - displays this message",
       "GM.CHECK": "/GM-CHECK command_name player_name - checks whether or not the player has a permission.",
@@ -1415,10 +1417,10 @@
                   const commandPermissions = permissions.filter(permission => permission.command.toLocaleUpperCase() === command.toLocaleUpperCase() || (permission.command.toLocaleUpperCase() === command.slice(1).toLocaleUpperCase() && command.startsWith("/")));
                   const targetUser = manager.users.get(userArgs.join(" "));
                   if (commandPermissions.some(permission => targetUser.permissions.has(permission) || Array.from(targetUser.groups).some(group => group.permissions.has(permission)))) {
-                      bot$$1.world.send(`${targetUser.name} has the ability to use the command ${command.toLocaleUpperCase()}`);
+                      bot$$1.world.send(`\n${targetUser.name} has the ability to use the command ${command.toLocaleUpperCase()}`);
                   }
                   else {
-                      bot$$1.world.send(`${targetUser.name} cannot use the command ${command.toLocaleUpperCase()}`);
+                      bot$$1.world.send(`\n${targetUser.name} cannot use the command ${command.toLocaleUpperCase()}`);
                   }
               }
               break;
@@ -1441,7 +1443,7 @@
                       bot$$1.world.send("This group does not exist! Group names are CaSe SeNsItIvE!");
                   }
                   else {
-                      bot$$1.world.send(`${group.name}:\nPlayers: ${group.players.size}\nThis group can use the commands:\n${Array.from(group.permissions.allowed).map(id => `${manager.permissions.get(id).command}`).join(", ")}`);
+                      bot$$1.world.send(`\n${group.name}:\nPlayers: ${group.players.size}\nThis group can use the commands:\n${Array.from(group.permissions.allowed).map(id => `${manager.permissions.get(id).command}`).join(", ")}`);
                   }
               }
               break;
@@ -1469,7 +1471,7 @@
                               bot$$1.world.send(`Added ${playerName.toLocaleUpperCase()} to ${group.name}.`);
                           }
                           else {
-                              bot$$1.world.send(`${playerName.toLocaleUpperCase()} is already in ${group.name}!`);
+                              bot$$1.world.send(`\n${playerName.toLocaleUpperCase()} is already in ${group.name}!`);
                           }
                       }
                   }
@@ -1499,7 +1501,7 @@
                               bot$$1.world.send(`Removed ${playerName.toLocaleUpperCase()} from ${group.name}.`);
                           }
                           else {
-                              bot$$1.world.send(`${playerName.toLocaleUpperCase()} was already not in ${group.name}!`);
+                              bot$$1.world.send(`\n${playerName.toLocaleUpperCase()} was already not in ${group.name}!`);
                           }
                       }
                   }
@@ -1507,7 +1509,7 @@
               break;
           case "GM.GSET":
               if (argsArr.length < 3) {
-                  bot$$1.world.send("You didn't specify enough arguments.\nExample: /GM-GSET COMMAND_NAME 1 GROUP_NAME\nThis would set any permission that can be activated by /COMMAND_NAME to true of the group GROUP_NAME. Alternatively if you wish to disable a permission, replace 1 with 0.");
+                  bot$$1.world.send("You didn't specify enough arguments.\nExample: /GM-GSET COMMAND_NAME 1 GROUP_NAME\nThis would set any permission that can be activated by /COMMAND_NAME to true of the group GROUP_NAME. Alternatively if you wish to disable a permission already true, replace 1 with 0.");
               }
               else {
                   const [command, value, ...groupNameArr] = argsArr;
@@ -1528,13 +1530,11 @@
                           }
                           else {
                               if (value === "1") {
-                                  for (const permission of commandPermissions)
-                                      group.permissions.add(permission);
+                                  group.permissions.add(commandPermissions[0]);
                                   bot$$1.world.send(`\n${command.startsWith("/") ? command.toLocaleUpperCase() : `/${command.toLocaleUpperCase()}`} is now enabled for the group ${group.name}.`);
                               }
                               else {
-                                  for (const permission of commandPermissions)
-                                      group.permissions.delete(permission);
+                                  group.permissions.delete(commandPermissions[0]);
                                   bot$$1.world.send(`\n${command.startsWith("/") ? command.toLocaleUpperCase() : `/${command.toLocaleUpperCase()}`} is now disabled for the group ${group.name}.`);
                               }
                           }
@@ -1543,12 +1543,75 @@
               }
               break;
           case "GM.USET":
+              if (argsArr.length < 3) {
+                  bot$$1.world.send("You didn't specify enough arguments.\nExample: /GM-USET COMMAND_NAME 1 PLAYER_NAME\nThis would set any permission that can be activated by /COMMAND_NAME to true of the user PLAYER_NAME. Alternatively if you wish to disable a permission already true, replace 1 with 0.");
+              }
+              else {
+                  const [command, value, ...playerNameArr] = argsArr;
+                  const userName = playerNameArr.join(" ");
+                  const user = manager.users.get(userName);
+                  if (!["1", "0"].includes(value)) {
+                      bot$$1.world.send("The value MUST be either 1 or 0.");
+                  }
+                  else {
+                      const permissions = bot.MessageBot.extensions.map(extension => manager.permissions.getExtensionPermissions(extension)).reduce((pSetA, pSetB) => pSetA.concat(pSetB));
+                      const commandPermissions = permissions.filter(permission => permission.command.toLocaleUpperCase() === command.toLocaleUpperCase() || (permission.command.toLocaleUpperCase() === command.slice(1).toLocaleUpperCase() && command.startsWith("/")));
+                      if (value === "1") {
+                          user.permissions.add(commandPermissions[0]);
+                          bot$$1.world.send(`\n${command.startsWith("/") ? command.toLocaleUpperCase() : `/${command.toLocaleUpperCase()}`} is now enabled for the user ${user.name}.`);
+                      }
+                      else {
+                          user.permissions.delete(commandPermissions[0]);
+                          bot$$1.world.send(`\n${command.startsWith("/") ? command.toLocaleUpperCase() : `/${command.toLocaleUpperCase()}`} is now disabled for the user ${user.name}.`);
+                      }
+                  }
+              }
               break;
           case "GM.CREATE":
+              if (argsArr.length < 1) {
+                  bot$$1.world.send("You didn't specify enough arguments.\nExample: /GM-CREATE TEST\nThis would create a group named TEST. Groups are CaSe SeNsItIvE and cannot contain spaces!");
+              }
+              else {
+                  if (manager.groups.get(args)) {
+                      bot$$1.world.send("This group already exists! Choose another name.");
+                  }
+                  else if (args.includes(" ")) {
+                      bot$$1.world.send("Group names cannot include spaces!");
+                  }
+                  else {
+                      manager.groups.add({ name: args });
+                      bot$$1.world.send(`The group ${args} was created!`);
+                  }
+              }
               break;
           case "GM.DESTROY":
+              if (argsArr.length < 1) {
+                  bot$$1.world.send("You didn't specify enough arguments.\nExample: /GM-DESTROY TEST\nThis would delete any group named TEST. Groups are CaSe SeNsItIvE!");
+              }
+              else {
+                  const group = manager.groups.get(args);
+                  if (group) {
+                      group.delete();
+                      bot$$1.world.send(`Deleted the group ${group.name}.`);
+                  }
+                  else {
+                      bot$$1.world.send("This group does not exist.");
+                  }
+              }
               break;
           case "GM.LIST":
+              if (argsArr.length < 1) {
+                  bot$$1.world.send("You didn't specify enough arguments.\nExample: /GM-LIST TEST\nThis would list the last 50 players of the group TEST.");
+              }
+              else {
+                  const group = manager.groups.get(args);
+                  if (group) {
+                      bot$$1.world.send(`\n${group.name}:\n${Array.from(group.players).slice(-50).reverse().map(player => player.name).join(", ")}`);
+                  }
+                  else {
+                      bot$$1.world.send("This group does not exist.");
+                  }
+              }
               break;
       }
   };
@@ -1655,7 +1718,7 @@
       }
   ];
 
-  const EXTENSION_ID$2 = "dapersonmgn/groupManagementBeta";
+  const EXTENSION_ID$2 = "dapersonmgn/groupManagement";
   bot.MessageBot.registerExtension(EXTENSION_ID$2, ex => {
       const GM = new GroupManagement(ex);
       for (const permission of BlockheadPermissions) {
