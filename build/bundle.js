@@ -465,9 +465,9 @@
       }
   }
 
-  var groupTabHTML = "<div class=\"container\">\r\n    <div class=\"box\" style=\"min-width: 35%; max-width: 35%; float: left; margin-top: 1%;\">\r\n      <aside class=\"menu\"></aside>\r\n    </div>\r\n    <div class=\"box\" style=\"min-width: 63%; max-width: 63%; float: right; margin-top: 1%;\">\r\n      <label>\r\n        <span class=\"title\">{TITLE}</span>\r\n      </label>\r\n      <label>\r\n        <span class=\"subtitle\" style=\"padding-left: 1%;\">\r\n          <a href=\"#\" data-action=\"rename\">Rename</a> - <a href=\"#\" data-action=\"delete\">Delete</a>\r\n        </span>\r\n        <span class=\"subtitle is-pulled-right\">\r\n          <a href=\"#\" data-action=\"create\">New Group</a>\r\n        </span>\r\n      </label>\r\n    </div>\r\n  </div>\r\n  ";
+  var groupTabHTML = "<div class=\"container\">\n    <div class=\"box\" style=\"min-width: 35%; max-width: 35%; float: left; margin-top: 1%;\">\n      <aside class=\"menu\"></aside>\n    </div>\n    <div class=\"box\" style=\"min-width: 63%; max-width: 63%; float: right; margin-top: 1%;\">\n      <label>\n        <span class=\"title\">{TITLE}</span>\n      </label>\n      <label>\n        <span class=\"subtitle\" style=\"padding-left: 1%;\">\n          <a href=\"#\" data-action=\"rename\">Rename</a> - <a href=\"#\" data-action=\"delete\">Delete</a>\n        </span>\n        <span class=\"subtitle is-pulled-right\">\n          <a href=\"#\" data-action=\"create\">New Group</a>\n        </span>\n      </label>\n    </div>\n  </div>\n  ";
 
-  var permissionHTML = "<p class=\"control\" style=\"padding-top: 2.5%;\">\r\n  <label class=\"checkbox\">\r\n    <input type=\"checkbox\" data-permission=\"{ID}\" {ALLOWED}{DISABLED}>\r\n    {PERMISSION}\r\n  </label>\r\n</p>";
+  var permissionHTML = "<p class=\"control\" style=\"padding-top: 2.5%;\">\n  <label class=\"checkbox\">\n    <input type=\"checkbox\" data-permission=\"{ID}\" {ALLOWED}{DISABLED}>\n    {PERMISSION}\n  </label>\n</p>";
 
   class UI {
       constructor(management) {
@@ -722,25 +722,26 @@
   }
 
   /*! *****************************************************************************
-  Copyright (c) Microsoft Corporation. All rights reserved.
-  Licensed under the Apache License, Version 2.0 (the "License"); you may not use
-  this file except in compliance with the License. You may obtain a copy of the
-  License at http://www.apache.org/licenses/LICENSE-2.0
+  Copyright (c) Microsoft Corporation.
 
-  THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-  KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
-  WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
-  MERCHANTABLITY OR NON-INFRINGEMENT.
+  Permission to use, copy, modify, and/or distribute this software for any
+  purpose with or without fee is hereby granted.
 
-  See the Apache Version 2.0 License for specific language governing permissions
-  and limitations under the License.
+  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+  REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+  AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+  INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+  LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+  OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+  PERFORMANCE OF THIS SOFTWARE.
   ***************************************************************************** */
 
   function __awaiter(thisArg, _arguments, P, generator) {
+      function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
       return new (P || (P = Promise))(function (resolve, reject) {
           function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
           function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-          function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+          function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
           step((generator = generator.apply(thisArg, _arguments || [])).next());
       });
   }
